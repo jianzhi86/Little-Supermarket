@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Little Supermarket</title>
+<style>
+/* ==========================================================
+   MY LITTLE SUPERMARKET  v2  —  classroom shopping game
+   One file · works offline · nothing is sent anywhere
+   ========================================================== */
+:root{
+  --pink:#ff6f9c; --pink-d:#e8437a;
+  --blue:#2f9be0; --blue-d:#1b7cbb;
+  --green:#3fbf5f; --green-d:#2ea24c;
+  --orange:#ff9a24; --orange-d:#ef7f00;
+  --purple:#9b6fe0; --purple-d:#7b4fd0;
+  --yellow:#ffd93d;
+  --ink:#3b4a63; --ink-soft:#6b7c96;
+  --line:#e3ecf5;
+  --shadow:0 4px 0 rgba(0,0,0,.06), 0 8px 20px rgba(40,70,110,.10);
+  --tap:30px;                      /* stepper button size, grows on touch */
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  margin:0;color:var(--ink);
+  font-family:"Baloo 2","Comic Sans MS","Trebuchet MS",Verdana,system-ui,sans-serif;
+  background:
+    radial-gradient(circle at 10% 6%, #ffe9a8 0 20%, transparent 20.5%),
+    radial-gradient(circle at 92% 94%, #bfe9ff 0 22%, transparent 22.5%),
+    linear-gradient(160deg,#fff4d6,#d9f2ff);
+  background-attachment:fixed;
+  -webkit-text-size-adjust:100%;
+}
+button{font-family:inherit;cursor:pointer;border:none}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.wrap{max-width:1440px;margin:0 auto;padding:10px 14px 24px}
+.hide{display:none !important}
+
+/* ===================== HOME SCREEN ===================== */
+#screenHome{min-height:100vh;display:grid;place-items:center;padding:18px;position:relative;overflow:hidden}
+.floaty{position:absolute;font-size:40px;opacity:.35;animation:bob 6s ease-in-out infinite;pointer-events:none;user-select:none}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-22px) rotate(8deg)}}
+.homecard{
+  width:min(880px,100%);background:#fff;border-radius:30px;padding:22px 26px 26px;text-align:center;
+  box-shadow:0 18px 50px rgba(40,70,110,.22);border:5px solid #ffdf9a;position:relative;z-index:2
+}
+.bigtitle{font-size:clamp(30px,6vw,62px);font-weight:800;line-height:1.05;margin:4px 0 2px}
+.bigtitle span{display:inline-block;animation:jump 2.4s ease-in-out infinite}
+.bigtitle span:nth-child(2){animation-delay:.15s}
+.bigtitle span:nth-child(3){animation-delay:.3s}
+@keyframes jump{0%,72%,100%{transform:translateY(0)}82%{transform:translateY(-12px)}}
+.t-a{color:var(--pink)} .t-b{color:var(--blue)} .t-c{color:var(--green)}
+.tagline{font-size:clamp(14px,2.2vw,20px);font-weight:700;color:#6b7c96;margin:0 0 14px}
+.hlabel{font-size:15px;font-weight:800;color:#8494ad;letter-spacing:.6px;margin:16px 0 8px;text-transform:uppercase}
+.namebox{
+  font-size:20px;font-weight:700;text-align:center;padding:10px 14px;border:3px solid var(--line);
+  border-radius:16px;width:min(330px,100%);color:var(--ink)
+}
+.tiles{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.tile{
+  width:190px;background:#f8fbff;border:4px solid var(--line);border-radius:22px;padding:14px 10px;
+  text-align:center;transition:transform .12s ease,border-color .12s,background .12s
+}
+.tile .em{font-size:44px;line-height:1.1}
+.tile .tn{font-size:19px;font-weight:800;color:#4a5a75}
+.tile .td{font-size:12.5px;font-weight:600;color:#8494ad;line-height:1.25;margin-top:3px}
+.tile.on{border-color:var(--green);background:#f0fff4;transform:translateY(-3px)}
+.tile:active{transform:scale(.97)}
+.levels{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.lvl{
+  padding:11px 18px;border-radius:16px;font-size:16px;font-weight:800;background:#f1f5fb;color:#66789a;
+  border:3px solid transparent;min-width:132px
+}
+.lvl small{display:block;font-size:11.5px;font-weight:700;opacity:.75}
+.lvl.on{background:var(--blue);color:#fff;border-color:#1b7cbb}
+.startbtn{
+  margin-top:20px;background:linear-gradient(180deg,#5fd07d,var(--green));color:#fff;border-radius:22px;
+  padding:16px 44px;font-size:clamp(22px,3.4vw,30px);font-weight:800;box-shadow:0 7px 0 var(--green-d);
+  display:inline-flex;align-items:center;gap:10px
+}
+.startbtn:active{transform:translateY(5px);box-shadow:0 2px 0 var(--green-d)}
+.homefoot{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.ghost{
+  background:#fff;border:3px solid var(--line);border-radius:14px;padding:9px 16px;font-weight:800;
+  font-size:14.5px;color:#6b7c96
+}
+.ghost.purple{border-color:#d9c6ff;color:var(--purple-d);background:#faf6ff}
+.howstrip{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.step{
+  background:#fffdf3;border:3px dashed #ffdf9a;border-radius:16px;padding:9px 14px;font-size:13.5px;
+  font-weight:700;color:#8a7645;max-width:230px;text-align:left;display:flex;gap:8px;align-items:center
+}
+.step b{color:var(--orange-d);font-size:17px}
+
+/* ===================== GAME HEADER ===================== */
+.topbar{
+  display:flex;align-items:center;gap:8px;background:linear-gradient(180deg,#fff,#fff8ea);
+  border:3px solid #ffd98a;border-radius:22px;padding:7px 11px;box-shadow:var(--shadow);flex-wrap:wrap
+}
+.brand{flex:1;text-align:center;font-size:clamp(19px,3vw,36px);font-weight:800;line-height:1.1;min-width:150px}
+.brand .a{color:var(--pink)} .brand .b{color:var(--blue)} .brand .c{color:var(--green)}
+.iconbtn{
+  height:44px;min-width:44px;border-radius:14px;font-size:19px;color:#fff;font-weight:800;
+  box-shadow:0 4px 0 rgba(0,0,0,.16);display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:0 12px;transition:transform .08s ease
+}
+.iconbtn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.16)}
+.iconbtn.home{background:var(--orange)} .iconbtn.sound{background:var(--blue)}
+.iconbtn.speak{background:var(--green)} .iconbtn.reset{background:var(--pink);font-size:14.5px}
+.iconbtn.teacher{background:var(--purple);font-size:14.5px}
+.playerbar{
+  display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:9px 0 4px;font-weight:800;font-size:14px
+}
+.pill{background:#fff;border:2px solid var(--line);border-radius:999px;padding:5px 14px;color:#5c6c88;box-shadow:0 2px 0 rgba(0,0,0,.04)}
+.pill b{color:var(--blue-d)}
+.pill.mode{background:#fff6e5;border-color:#ffdf9a;color:#a5761d}
+.subtitle{text-align:center;font-size:clamp(14px,1.7vw,19px);font-weight:700;color:#5a6b86;margin:6px 0 10px}
+
+/* ===================== BOARD ===================== */
+.board{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(226px,.7fr) minmax(230px,.75fr);gap:13px;align-items:start}
+.panel{background:#fff;border-radius:18px;box-shadow:var(--shadow);border:2px solid #eaf2fb}
+.panel-head{padding:9px 12px;font-weight:800;color:#fff;font-size:16.5px;border-radius:16px 16px 0 0;text-align:center}
+
+/* shop */
+.shop{padding:0 0 14px}
+.shop-hint{
+  margin:12px auto 2px;display:block;width:max-content;max-width:94%;background:#eaf6ff;border:2px dashed #9ed4f5;
+  color:#2b6f9c;font-weight:800;padding:6px 18px;border-radius:14px;font-size:15px
+}
+.shop .tag{display:inline-block;margin:14px 0 8px 12px;padding:6px 16px;border-radius:12px;color:#fff;font-weight:800;font-size:15px;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.shelf{
+  margin:0 10px;padding:6px 6px 12px;border-radius:14px;
+  background:linear-gradient(180deg,#fbfdff,#f3f8fd);border:2px solid #eef4fb;
+  box-shadow:inset 0 -8px 0 rgba(120,150,180,.07)
+}
+.catgrid{display:flex;flex-wrap:wrap;gap:9px;justify-content:flex-start}
+.card{
+  width:114px;background:#fff;border:3px solid var(--line);border-radius:15px;padding:6px 4px 7px;text-align:center;
+  box-shadow:0 3px 0 rgba(0,0,0,.05);position:relative;transition:transform .1s ease,border-color .1s,background .1s
+}
+.card.picked{border-color:var(--green);background:#f2fff5;transform:translateY(-3px)}
+.card .nm{font-size:12.5px;font-weight:800;color:#5b6b85;min-height:30px;line-height:1.2;display:flex;align-items:center;justify-content:center;padding:0 2px}
+.card .pic{font-size:40px;line-height:1.15;user-select:none;transition:transform .12s}
+.card.picked .pic{transform:scale(1.1)}
+.card .price{
+  position:absolute;top:-9px;right:-6px;background:var(--yellow);color:#7a5a00;font-size:12px;font-weight:800;
+  padding:2px 7px;border-radius:999px;box-shadow:0 2px 0 rgba(0,0,0,.14);border:2px solid #fff
+}
+.stepper{display:grid;grid-template-columns:var(--tap) 1fr var(--tap);align-items:center;gap:4px;margin-top:4px;padding:0 4px}
+.stepper button{
+  height:var(--tap);border-radius:9px;color:#fff;font-size:19px;font-weight:800;line-height:1;
+  box-shadow:0 3px 0 rgba(0,0,0,.15);display:grid;place-items:center
+}
+.stepper button:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.15)}
+.stepper .minus{background:#b9c6d8} .stepper .plus{background:var(--green)}
+.stepper .qty{
+  font-weight:800;font-size:17px;color:var(--ink);background:#f4f8fc;border-radius:8px;border:2px solid var(--line);
+  height:var(--tap);text-align:center;width:100%;min-width:0;padding:0;-moz-appearance:textfield;appearance:textfield
+}
+.stepper .qty::-webkit-outer-spin-button,.stepper .qty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+/* list */
+.list-panel .panel-head{background:linear-gradient(180deg,#ff86ab,var(--pink))}
+.list-body{padding:9px;max-height:64vh;overflow:auto}
+.list-item{
+  display:flex;align-items:center;gap:9px;padding:8px;border-bottom:2px dotted #ffd7e4;font-size:17px;
+  font-weight:800;color:#4a5a75;cursor:pointer;border-radius:10px
+}
+.list-item:hover{background:#fff5f8}
+.list-item .pic{font-size:25px}
+.list-item .qty{color:var(--pink-d);min-width:26px;text-align:right}
+.list-item .mark{margin-left:auto;font-size:19px}
+.list-item.ok{background:#effbf1} .list-item.bad{background:#fff0f0}
+.list-empty{padding:26px 10px;text-align:center;color:#9aa8bd;font-weight:700}
+.hidden-list{padding:24px 10px;text-align:center;font-weight:800;color:#b9a06a}
+
+/* cart */
+.cart-panel .panel-head{background:linear-gradient(180deg,#5cb6ef,var(--blue))}
+.cart-body{padding:11px}
+.cart-box{
+  border:3px dashed #b7dcf5;border-radius:14px;min-height:170px;max-height:40vh;overflow:auto;padding:9px;
+  display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;justify-content:center;background:#f7fcff
+}
+.cart-box.flash{animation:flash .45s}
+@keyframes flash{50%{background:#e6f7ff;border-color:var(--blue)}}
+.cart-empty{margin:auto;text-align:center;color:#9cc4dd;font-weight:700;font-size:14px}
+.cart-empty .big{font-size:44px;display:block;line-height:1.2}
+.chip{background:#fff;border:3px solid #d8ecf9;border-radius:12px;padding:5px 8px;text-align:center;min-width:62px;box-shadow:0 2px 0 rgba(0,0,0,.05)}
+.chip .pic{font-size:26px;line-height:1.1}
+.chip .n{font-weight:800;font-size:14px;color:#3b7ea8}
+.chip.ok{border-color:var(--green);background:#f1fff4}
+.chip.bad{border-color:#ffb0b0;background:#fff4f4}
+.total{margin-top:11px;background:linear-gradient(180deg,#5fd07d,var(--green));color:#fff;border-radius:14px;padding:8px;text-align:center;box-shadow:0 4px 0 rgba(0,0,0,.12)}
+.total .lab{font-size:12.5px;font-weight:800;letter-spacing:.5px}
+.total .num{font-size:33px;font-weight:800;line-height:1}
+.bigbtn{
+  width:100%;margin-top:11px;background:linear-gradient(180deg,#ffab3d,var(--orange));color:#fff;border-radius:15px;
+  padding:14px;font-size:19px;font-weight:800;box-shadow:0 5px 0 var(--orange-d);display:flex;align-items:center;justify-content:center;gap:8px
+}
+.bigbtn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--orange-d)}
+.bigbtn.blue{background:linear-gradient(180deg,#7cc6f5,var(--blue));box-shadow:0 5px 0 var(--blue-d)}
+
+/* money question */
+.moneyq{margin-top:11px;background:#fffbe9;border:3px solid var(--yellow);border-radius:15px;padding:10px;text-align:center}
+.moneyq .q{font-size:15px;font-weight:800;color:#8a6d18}
+.moneyq .inrow{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:7px}
+.moneyq .cur{font-size:21px;font-weight:800;color:#8a6d18}
+.moneyq input{
+  width:120px;font-size:23px;font-weight:800;text-align:center;padding:6px;border:3px solid #ffe08a;
+  border-radius:12px;font-family:inherit;color:var(--ink)
+}
+.moneyq .fb{font-size:14px;font-weight:800;margin-top:6px;min-height:18px}
+.moneyq .fb.ok{color:var(--green-d)} .moneyq .fb.bad{color:#d64545}
+
+/* notes */
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:14px}
+.note{background:#fff;border-radius:16px;padding:10px 14px;box-shadow:var(--shadow);display:flex;gap:10px;align-items:flex-start;border:2px solid #eef4fb}
+.note .ic{font-size:23px;line-height:1}
+.note b{display:block;font-size:15px}
+.note span{font-size:13.5px;color:var(--ink-soft);font-weight:600}
+
+/* ===================== RESULTS ===================== */
+.overlay{position:fixed;inset:0;background:rgba(35,55,85,.55);display:none;z-index:60;padding:16px;overflow:auto}
+.overlay.show{display:block}
+.resultcard{
+  max-width:560px;margin:5vh auto;background:#fff;border-radius:28px;border:6px solid var(--yellow);
+  box-shadow:0 24px 60px rgba(0,0,0,.35);padding:22px;text-align:center;animation:pop .4s cubic-bezier(.2,1.6,.4,1)
+}
+@keyframes pop{from{transform:scale(.55);opacity:0}to{transform:scale(1);opacity:1}}
+.stars{font-size:52px;letter-spacing:6px;line-height:1.1}
+.star{display:inline-block;animation:starIn .5s backwards cubic-bezier(.2,1.7,.4,1)}
+.star:nth-child(2){animation-delay:.18s} .star:nth-child(3){animation-delay:.36s}
+@keyframes starIn{from{transform:scale(0) rotate(-90deg);opacity:0}}
+.rtitle{font-size:30px;font-weight:800;color:var(--orange-d);margin:4px 0}
+.rscore{font-size:18px;font-weight:800;color:#5c6c88}
+.rbox{background:#f7fbff;border:2px solid var(--line);border-radius:16px;padding:11px;margin:13px 0;text-align:left;font-size:14.5px;font-weight:700;color:#5c6c88;max-height:34vh;overflow:auto}
+.rbox .li{padding:5px 0;border-bottom:1px dotted #dbe6f2;line-height:1.45}
+.rbox .li:last-child{border:none}
+.rbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+.rbtn{padding:13px 20px;border-radius:16px;font-size:17px;font-weight:800;color:#fff;box-shadow:0 5px 0 rgba(0,0,0,.16)}
+.rbtn:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.16)}
+.rbtn.g{background:var(--green)} .rbtn.b{background:var(--blue)} .rbtn.o{background:var(--orange)} .rbtn.grey{background:#8c9bb4}
+.confetti{position:fixed;top:-14px;font-size:22px;z-index:70;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(108vh) rotate(620deg);opacity:.9}}
+.flyer{position:fixed;z-index:75;pointer-events:none;transition:transform .62s cubic-bezier(.45,.05,.55,.95),opacity .62s}
+
+/* ===================== TEACHER PANEL ===================== */
+.modal{max-width:960px;margin:20px auto;background:#fff;border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;border:3px solid #d9c6ff}
+.modal-head{background:linear-gradient(180deg,#b18ded,var(--purple));color:#fff;padding:12px 18px;display:flex;align-items:center;gap:10px}
+.modal-head h2{margin:0;font-size:21px;flex:1}
+.modal-head button{background:rgba(255,255,255,.22);color:#fff;border-radius:10px;padding:7px 13px;font-weight:800}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px 0;border-bottom:2px solid var(--line)}
+.tab{padding:9px 14px;border-radius:12px 12px 0 0;background:#f1f5fb;color:#67789a;font-weight:800;font-size:14px}
+.tab.on{background:var(--purple);color:#fff}
+.tabbody{padding:16px 18px 22px}
+.pane{display:none} .pane.on{display:block}
+h3.sec{margin:0 0 8px;font-size:16px;color:#5b4a86}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+label.f{font-size:13.5px;font-weight:800;color:#5c6c88;display:flex;flex-direction:column;gap:4px}
+input[type=text],input[type=number],input[type=password],select,textarea{font-family:inherit;font-size:15px;padding:8px 10px;border:2px solid var(--line);border-radius:10px;color:var(--ink);background:#fff}
+input[type=number]{width:92px}
+textarea{width:100%;min-height:100px;font-size:12.5px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.btn{padding:10px 15px;border-radius:12px;font-weight:800;font-size:14.5px;color:#fff;background:var(--blue);box-shadow:0 4px 0 rgba(0,0,0,.15)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.15)}
+.btn.g{background:var(--green)} .btn.o{background:var(--orange)} .btn.p{background:var(--pink)} .btn.grey{background:#8c9bb4}
+.btn.sm{padding:6px 11px;font-size:13px;border-radius:9px}
+.chk{display:flex;align-items:center;gap:7px;font-weight:700;font-size:13.5px;color:#5c6c88;background:#f6f9fd;border:2px solid var(--line);padding:8px 11px;border-radius:11px;cursor:pointer}
+.chk input{width:17px;height:17px;accent-color:var(--purple)}
+.pickgrid{display:flex;flex-wrap:wrap;gap:7px;max-height:300px;overflow:auto;padding:6px;border:2px solid var(--line);border-radius:12px;background:#fbfdff}
+.pick{width:92px;border:2px solid var(--line);border-radius:11px;background:#fff;padding:5px;text-align:center}
+.pick .pic{font-size:25px}
+.pick .nm{font-size:11px;font-weight:800;color:#66788f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick input[type=number]{width:100%;text-align:center;font-size:14px;font-weight:800;padding:3px;border-radius:7px;border:2px solid var(--line)}
+.pick .plab{font-size:10px;font-weight:800;color:#a3b0c4;margin-top:2px}
+.pick.on{border-color:var(--green);background:#f3fff6}
+.mini{font-size:12.5px;color:#8794ab;font-weight:600}
+.listedit{border:2px solid var(--line);border-radius:12px;overflow:hidden;max-height:260px;overflow-y:auto}
+.le-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--line);font-weight:700;font-size:15px}
+.le-row:last-child{border-bottom:none}
+.le-row .pic{font-size:22px} .le-row input{width:74px}
+.le-row .del{margin-left:auto;background:#ff7a7a;color:#fff;border-radius:9px;padding:5px 11px;font-weight:800}
+.emojigrid{display:flex;flex-wrap:wrap;gap:5px;max-height:140px;overflow:auto;border:2px solid var(--line);border-radius:12px;padding:7px;background:#fbfdff}
+.emojigrid button{font-size:23px;background:#fff;border:2px solid var(--line);border-radius:9px;width:42px;height:42px}
+.emojigrid button.on{border-color:var(--purple);background:#f5efff}
+.pinbox{padding:34px 20px;text-align:center}
+.pinbox .big{font-size:50px}
+.err{color:#d64545;font-weight:800;font-size:14px;min-height:18px}
+.saved{display:flex;flex-wrap:wrap;gap:8px}
+.saved .s{background:#f2f6ff;border:2px solid #dbe6f8;border-radius:11px;padding:6px 10px;font-weight:800;font-size:13.5px;display:flex;align-items:center;gap:6px}
+.saved .s button{background:none;color:#7b8aa5;font-weight:800;font-size:15px}
+hr.sep{border:none;border-top:2px dashed var(--line);margin:16px 0}
+table.log{width:100%;border-collapse:collapse;font-size:14px}
+table.log th,table.log td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;font-weight:700}
+table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:uppercase;letter-spacing:.4px}
+.statrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.stat{background:#f6f9fd;border:2px solid var(--line);border-radius:14px;padding:9px 16px;text-align:center;min-width:104px}
+.stat .n{font-size:24px;font-weight:800;color:var(--blue-d)} .stat .l{font-size:11.5px;font-weight:800;color:#8794ab;text-transform:uppercase}
+
+/* sticky helper columns on wide screens */
+@media(min-width:1121px){
+  .list-panel,.cart-panel{position:sticky;top:8px}
+}
+
+/* bottom action bar for tablets & phones */
+.actionbar{display:none}
+@media(max-width:1120px){
+  body{padding-bottom:78px}
+  .actionbar{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;gap:9px;align-items:center;
+    padding:9px 12px;background:rgba(255,255,255,.96);border-top:3px solid #ffd98a;
+    box-shadow:0 -6px 20px rgba(40,70,110,.16)
+  }
+  .actionbar .ab-list{background:var(--pink);color:#fff;border-radius:14px;padding:12px 14px;font-weight:800;font-size:15px;box-shadow:0 4px 0 var(--pink-d)}
+  .actionbar .ab-total{background:var(--green);color:#fff;border-radius:14px;padding:10px 14px;font-weight:800;font-size:15px;text-align:center;min-width:74px;box-shadow:0 4px 0 var(--green-d)}
+  .actionbar .ab-add{flex:1;background:linear-gradient(180deg,#ffab3d,var(--orange));color:#fff;border-radius:14px;padding:13px;font-weight:800;font-size:17px;box-shadow:0 4px 0 var(--orange-d)}
+  .actionbar button:active{transform:translateY(3px)}
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media(max-width:1120px){
+  .board{grid-template-columns:1fr 1fr}
+  .shop{grid-column:1/-1;order:3}
+  .list-panel{order:1} .cart-panel{order:2}
+  .list-body{max-height:none}
+}
+@media(max-width:700px){
+  .board{grid-template-columns:1fr}
+  .card{width:calc(33.333% - 6px)}
+  .brand{font-size:20px;order:-1;width:100%}
+  .cart-box{min-height:110px}
+}
+@media(hover:none),(pointer:coarse){
+  :root{--tap:38px}
+  .card{width:126px}
+  .card .pic{font-size:44px}
+  .list-item{font-size:19px;padding:11px 8px}
+}
+/* ===================== PRINT ===================== */
+.printonly{display:none}
+@media print{
+  body *{visibility:hidden}
+  .printonly,.printonly *{visibility:visible;display:block}
+  .printonly{position:absolute;inset:0;padding:20px}
+  .printonly h1{font-size:28px;margin:0 0 6px}
+  .printonly .pline{font-size:23px;padding:9px 0;border-bottom:2px dotted #999;display:flex;gap:14px;align-items:center}
+  .printonly .box{width:25px;height:25px;border:2px solid #444;border-radius:5px;display:inline-block}
+  .printonly table{width:100%;border-collapse:collapse;font-size:14px;display:table}
+  .printonly th,.printonly td{border:1px solid #888;padding:6px;text-align:left;display:table-cell}
+  .printonly tr{display:table-row}
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== HOME SCREEN ==================== -->
+<div id="screenHome">
+  <div class="floaty" style="left:5%;top:12%">🍎</div>
+  <div class="floaty" style="left:88%;top:18%;animation-delay:.8s">🥕</div>
+  <div class="floaty" style="left:12%;top:74%;animation-delay:1.6s">🍌</div>
+  <div class="floaty" style="left:82%;top:70%;animation-delay:2.2s">🍓</div>
+  <div class="floaty" style="left:46%;top:6%;animation-delay:1.1s">🛒</div>
+
+  <div class="homecard">
+    <div style="font-size:44px;line-height:1">🛒</div>
+    <h1 class="bigtitle"><span class="t-a">My</span> <span class="t-b">Little</span> <span class="t-c">Supermarket</span></h1>
+    <p class="tagline">Read the list · Count the items · Fill your cart!</p>
+
+    <div class="hlabel">Who is playing?</div>
+    <input class="namebox" id="hName" type="text" placeholder="Type your name (optional)" maxlength="24">
+
+    <div class="hlabel">Choose a game</div>
+    <div class="tiles" id="modeTiles">
+      <button class="tile on" data-mode="shop">
+        <div class="em">🛒</div><div class="tn">Shopping</div>
+        <div class="td">Buy the right number of each item</div>
+      </button>
+      <button class="tile" data-mode="money">
+        <div class="em">💰</div><div class="tn">Money</div>
+        <div class="td">Buy the items, then work out the price</div>
+      </button>
+    </div>
+
+    <div class="hlabel">Choose a level</div>
+    <div class="levels" id="levelBtns">
+      <button class="lvl on" data-lvl="easy">😀 Easy<small>numbers 1–5 · 4 things</small></button>
+      <button class="lvl" data-lvl="medium">🙂 Medium<small>numbers 1–10 · 6 things</small></button>
+      <button class="lvl" data-lvl="hard">😎 Hard<small>numbers 5–20 · 8 things</small></button>
+      <button class="lvl" data-lvl="teacher">👩‍🏫 Teacher's list<small>use the saved list</small></button>
+    </div>
+
+    <button class="startbtn" id="btnStart">▶ Start Shopping</button>
+
+    <div class="howstrip">
+      <div class="step"><b>1</b> Read the shopping list</div>
+      <div class="step"><b>2</b> Tap + or − to count</div>
+      <div class="step"><b>3</b> Press Add to Cart</div>
+    </div>
+
+    <div class="homefoot">
+      <button class="ghost purple" id="btnTeacherHome">🔒 Teacher / Admin</button>
+      <button class="ghost" id="btnSoundHome">🔊 Sound: on</button>
+      <button class="ghost" id="btnClassHome">📊 Class progress</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== GAME SCREEN ==================== -->
+<div class="wrap hide" id="screenGame">
+  <div class="topbar">
+    <button class="iconbtn home" id="btnHome" title="Back to the start screen">🏠</button>
+    <button class="iconbtn speak" id="btnSpeak" title="Read the shopping list aloud">🗣️</button>
+    <div class="brand"><span class="a">My</span> <span class="b">Little</span> <span class="c">Supermarket</span> 🛒</div>
+    <button class="iconbtn sound" id="btnSound" title="Sound on/off">🔊</button>
+    <button class="iconbtn teacher" id="btnTeacher" title="Teacher panel">🔒 Teacher</button>
+    <button class="iconbtn reset" id="btnReset" title="Empty the cart">↻ Reset</button>
+  </div>
+
+  <div class="playerbar" id="playerBar"></div>
+  <div class="subtitle" id="subtitle">Let's go shopping! Read the list and buy the items.</div>
+
+  <div class="board">
+    <div class="panel shop">
+      <span class="shop-hint" id="shopHint">Pick the items you want to buy.</span>
+      <div id="shop"></div>
+    </div>
+
+    <div class="panel list-panel">
+      <div class="panel-head" id="listHead">📋 SHOPPING LIST</div>
+      <div class="list-body" id="listBody"></div>
+    </div>
+
+    <div class="panel cart-panel">
+      <div class="panel-head" id="cartHead">🛒 MY CART</div>
+      <div class="cart-body">
+        <div class="cart-box" id="cartBox"></div>
+        <div class="total"><div class="lab" id="totalLab">TOTAL ITEMS</div><div class="num" id="totalNum">0</div></div>
+
+        <div class="moneyq hide" id="moneyQ">
+          <div class="q" id="moneyQText">How much do you need to pay?</div>
+          <div class="inrow"><span class="cur" id="moneyCur">RM</span><input type="number" id="moneyIn" step="0.01" min="0" placeholder="0"></div>
+          <div class="fb" id="moneyFb"></div>
+        </div>
+
+        <button class="bigbtn" id="btnAdd">🛒 Add to Cart</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><div class="ic">💡</div><div><b>How to play</b><span id="howText">Tap "+" or "−" to choose how many you want. Then press Add to Cart!</span></div></div>
+    <div class="note" style="background:#fffbea;border-color:#ffe6a1"><div class="ic">⭐</div><div><b>Take your time</b><span>Point at each line, say the number out loud, then count as you tap.</span></div></div>
+    <div class="note" style="background:#f0fbff;border-color:#bfe6f8"><div class="ic">🗣️</div><div><b>Need help reading?</b><span>Tap any line on the shopping list and the computer will read it to you.</span></div></div>
+  </div>
+
+  <div class="actionbar" id="actionBar">
+    <button class="ab-list" id="abList">📋 List</button>
+    <div class="ab-total">🛒 <b id="abNum">0</b></div>
+    <button class="ab-add" id="abAdd">🛒 Add to Cart</button>
+  </div>
+</div>
+
+<!-- ==================== RESULTS ==================== -->
+<div class="overlay" id="resultOverlay">
+  <div class="resultcard">
+    <div class="stars" id="rStars"></div>
+    <div class="rtitle" id="rTitle">Great job!</div>
+    <div class="rscore" id="rScore"></div>
+    <div class="rbox" id="rBox"></div>
+    <div class="rbtns">
+      <button class="rbtn b" id="rAgain">🔄 Try Again</button>
+      <button class="rbtn g" id="rNew">🎲 New List</button>
+      <button class="rbtn o" id="rHome">🏠 Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TEACHER PANEL ==================== -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span style="font-size:23px">🍎</span><h2>Teacher Panel</h2>
+      <button id="btnCloseModal">✕ Close</button>
+    </div>
+
+    <div id="pinGate" class="pinbox">
+      <div class="big">🔒</div>
+      <p style="font-weight:800;color:#5c6c88">Enter the teacher PIN</p>
+      <input type="password" id="pinInput" inputmode="numeric" style="font-size:26px;text-align:center;width:170px;letter-spacing:8px" maxlength="8" placeholder="••••">
+      <div style="margin-top:12px"><button class="btn g" id="btnPinGo">Enter</button></div>
+      <div class="err" id="pinErr"></div>
+      <div class="mini" style="margin-top:8px">Default PIN is <b>1234</b> — change it in Settings.</div>
+    </div>
+
+    <div id="panelBody" style="display:none">
+      <div class="tabs">
+        <button class="tab on" data-pane="build">📝 Build List</button>
+        <button class="tab" data-pane="random">🎲 Random List</button>
+        <button class="tab" data-pane="items">🧺 Items &amp; Prices</button>
+        <button class="tab" data-pane="class">📊 Class</button>
+        <button class="tab" data-pane="settings">⚙️ Settings</button>
+      </div>
+      <div class="tabbody">
+
+        <!-- BUILD -->
+        <div class="pane on" id="pane-build">
+          <h3 class="sec">1. Type how many of each item the children must buy</h3>
+          <div class="mini" style="margin-bottom:8px">Leave a box empty or 0 to keep the item off the list.</div>
+          <div class="pickgrid" id="buildGrid"></div>
+          <h3 class="sec" style="margin-top:16px">2. Current shopping list</h3>
+          <div class="listedit" id="listEdit"></div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn g" id="btnApplyBuild">✔ Use this list</button>
+            <button class="btn grey" id="btnClearList">Clear list</button>
+            <button class="btn o" id="btnPrint">🖨️ Print list</button>
+            <button class="btn p" id="btnSplit">➗ Split a line in two</button>
+          </div>
+          <div class="mini">“Split a line” turns e.g. <b>27 apples</b> into <b>20 apples</b> + <b>7 apples</b> — good for addition practice.</div>
+          <hr class="sep">
+          <h3 class="sec">Saved lists (this session)</h3>
+          <div class="row">
+            <input type="text" id="saveName" placeholder="e.g. Monday P1" style="width:190px">
+            <button class="btn" id="btnSaveList">💾 Save current list</button>
+          </div>
+          <div class="saved" id="savedWrap"></div>
+        </div>
+
+        <!-- RANDOM -->
+        <div class="pane" id="pane-random">
+          <h3 class="sec">Make a random shopping list</h3>
+          <div class="row">
+            <label class="f">How many lines<input type="number" id="rCount" min="1" max="20" value="6"></label>
+            <label class="f">Smallest number<input type="number" id="rMin" min="1" max="99" value="1"></label>
+            <label class="f">Biggest number<input type="number" id="rMax" min="1" max="99" value="10"></label>
+          </div>
+          <div class="row"><label class="chk"><input type="checkbox" id="rRepeat"> Allow the same item on two lines (e.g. 20 apples and 7 apples)</label></div>
+          <h3 class="sec">Use items from these groups</h3>
+          <div class="row" id="rCats"></div>
+          <div class="row">
+            <button class="btn g" id="btnGen">🎲 Generate &amp; use list</button>
+            <button class="btn o" id="btnPrint2">🖨️ Print list</button>
+          </div>
+          <hr class="sep">
+          <h3 class="sec">Quick presets</h3>
+          <div class="row">
+            <button class="btn sm" data-preset="1,5,4">Easy · 1–5 · 4 lines</button>
+            <button class="btn sm" data-preset="1,10,6">Medium · 1–10 · 6 lines</button>
+            <button class="btn sm" data-preset="5,20,8">Hard · 5–20 · 8 lines</button>
+            <button class="btn sm" data-preset="10,30,12">Challenge · 10–30 · 12 lines</button>
+          </div>
+          <div class="mini">These are the same levels children can pick on the start screen. Changing the numbers here also changes what “Easy / Medium / Hard” generate if you press <b>Save as level</b> below.</div>
+          <div class="row" style="margin-top:8px">
+            <select id="lvlTarget"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select>
+            <button class="btn" id="btnSaveLvl">💾 Save as level</button>
+            <span class="mini" id="lvlMsg"></span>
+          </div>
+        </div>
+
+        <!-- ITEMS -->
+        <div class="pane" id="pane-items">
+          <h3 class="sec">Add your own item</h3>
+          <div class="row">
+            <label class="f">Name (one)<input type="text" id="niName" placeholder="Mango" style="width:140px"></label>
+            <label class="f">Name (many)<input type="text" id="niPlural" placeholder="mangoes" style="width:140px"></label>
+            <label class="f">Group<select id="niCat"></select></label>
+            <label class="f">Price<input type="number" id="niPrice" value="2" min="0" step="0.5" style="width:80px"></label>
+            <label class="f">Picture<input type="text" id="niEmoji" value="🥭" style="width:70px;font-size:23px;text-align:center"></label>
+            <button class="btn g" id="btnAddItem" style="align-self:flex-end">➕ Add item</button>
+          </div>
+          <div class="emojigrid" id="emojiGrid"></div>
+          <div class="mini" style="margin-top:6px">Click a picture above, or type/paste any emoji into the Picture box.</div>
+          <hr class="sep">
+          <h3 class="sec">All items — set prices, or untick to hide one from the shop</h3>
+          <div class="row">
+            <label class="f">Currency<input type="text" id="sCurrency" value="RM" style="width:80px" maxlength="4"></label>
+            <button class="btn sm" id="btnRoundPrices">Make all prices whole numbers</button>
+          </div>
+          <div class="pickgrid" id="itemsAdmin"></div>
+        </div>
+
+        <!-- CLASS -->
+        <div class="pane" id="pane-class">
+          <h3 class="sec">This session</h3>
+          <div class="statrow" id="statRow"></div>
+          <div style="max-height:300px;overflow:auto;border:2px solid var(--line);border-radius:12px">
+            <table class="log" id="logTable"></table>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn o" id="btnPrintLog">🖨️ Print / save summary</button>
+            <button class="btn grey" id="btnClearLog">Clear session</button>
+          </div>
+          <div class="mini">The list clears when the page is closed — print or download it before you finish.</div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div class="pane" id="pane-settings">
+          <h3 class="sec">Game options</h3>
+          <div class="row">
+            <label class="chk"><input type="checkbox" id="sCheck" checked> Mark the answers</label>
+            <label class="chk"><input type="checkbox" id="sShowMistakes" checked> Show which items were wrong</label>
+            <label class="chk"><input type="checkbox" id="sSound" checked> Sounds</label>
+            <label class="chk"><input type="checkbox" id="sSpeak" checked> Read a list line aloud when tapped</label>
+          </div>
+          <div class="row">
+            <label class="chk"><input type="checkbox" id="sHideList"> Memory challenge — hide the list after 10 seconds</label>
+            <label class="chk"><input type="checkbox" id="sShowPrices" checked> Show price tags in Money mode</label>
+            <label class="chk"><input type="checkbox" id="sEasySums" checked> Money mode: keep quantities small (1–5) so the bill is easy to add</label>
+          </div>
+          <div class="row">
+            <label class="f">Words on screen<select id="sLang"><option value="en">English</option><option value="ms">Bahasa Melayu</option></select></label>
+          </div>
+          <hr class="sep">
+          <h3 class="sec">Teacher PIN</h3>
+          <div class="row">
+            <label class="f">New PIN<input type="text" id="sPin" style="width:120px" maxlength="8"></label>
+            <button class="btn" id="btnSavePin" style="align-self:flex-end">Save PIN</button>
+            <span class="mini" id="pinMsg"></span>
+          </div>
+          <hr class="sep">
+          <h3 class="sec">Save / load your setup</h3>
+          <div class="mini" style="margin-bottom:6px">Download the file and keep it. Next time, paste the text back and press Load to restore your items, prices and lists.</div>
+          <textarea id="ioBox" spellcheck="false"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" id="btnExport">📤 Show my setup</button>
+            <button class="btn g" id="btnImport">📥 Load setup</button>
+            <button class="btn o" id="btnDownload">⬇️ Download as file</button>
+            <span class="mini" id="ioMsg"></span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="printonly" id="printArea"></div>
+
+<script>
+"use strict";
+/* =======================================================
+   DATA
+   ======================================================= */
+const CATS = [
+  {id:"fruit", name:"FRUITS",         icon:"🍎", color:"#3fbf5f"},
+  {id:"veg",   name:"VEGETABLES",     icon:"🥕", color:"#7ac943"},
+  {id:"meat",  name:"MEAT & SEAFOOD", icon:"🍖", color:"#ef6a6a"},
+  {id:"dairy", name:"DAIRY & OTHERS", icon:"🥛", color:"#9b6fe0"}
+];
+
+const DEFAULT_ITEMS = [
+  ["apple","Apple","apples","🍎","fruit",2],
+  ["banana","Banana","bananas","🍌","fruit",1],
+  ["orange","Orange","oranges","🍊","fruit",2],
+  ["watermelon","Watermelon","watermelons","🍉","fruit",8],
+  ["grapes","Grapes","grapes","🍇","fruit",5],
+  ["kiwi","Kiwi","kiwis","🥝","fruit",3],
+  ["strawberry","Strawberry","strawberries","🍓","fruit",4],
+  ["pineapple","Pineapple","pineapples","🍍","fruit",6],
+  ["pumpkin","Pumpkin","pumpkins","🎃","veg",7],
+  ["corn","Corn","corns","🌽","veg",2],
+  ["carrot","Carrot","carrots","🥕","veg",1],
+  ["capsicum","Yellow Capsicum","yellow capsicums","🫑","veg",3],
+  ["broccoli","Broccoli","broccolis","🥦","veg",4],
+  ["tomato","Tomato","tomatoes","🍅","veg",2],
+  ["potato","Potato","potatoes","🥔","veg",2],
+  ["chicken","Chicken","chicken","🍗","meat",9],
+  ["shrimp","Shrimp","shrimps","🦐","meat",6],
+  ["fish","Fish","fish","🐟","meat",8],
+  ["meat","Meat","meat","🥩","meat",10],
+  ["egg","Egg","eggs","🥚","meat",1],
+  ["milk","Milk","milk","🥛","dairy",5],
+  ["bread","Bread","bread","🍞","dairy",3],
+  ["cake","Cake","cakes","🍰","dairy",7],
+  ["cans","Canned Goods","canned goods","🥫","dairy",4],
+  ["cheese","Cheese","cheese","🧀","dairy",6],
+  ["juice","Juice","juices","🧃","dairy",3]
+].map(a=>({id:a[0],name:a[1],plural:a[2],emoji:a[3],cat:a[4],price:a[5],on:true}));
+
+const EMOJI_LIST = [...new Set(Array.from("🍎🍏🍐🍊🍋🍌🍉🍇🍓🫐🍒🍑🥭🍍🥥🥝🍅🍆🥑🥦🥬🥒🫑🌽🥕🧄🧅🥔🍠🥐🍞🥖🥨🧀🥚🍳🥞🧇🥓🥩🍗🍖🌭🍔🍟🍕🥪🌮🌯🥗🍝🍜🍲🍛🍣🍤🦐🦀🦞🐟🐠🍦🍩🍪🎂🍰🧁🥧🍫🍬🍭🍯🥛🧃☕🧋🍵🥫🍚🥟🥜🌰🍿🧊🧻🧼🪥🧸📚✏️"))];
+
+/* =======================================================
+   STATE
+   ======================================================= */
+const state = {
+  items: DEFAULT_ITEMS.map(o=>({...o})),
+  list: [], picks: {}, checked:false, result:null,
+  saved:{}, log:[], round:0, attempts:0,
+  player:"", mode:"shop", level:"easy",
+  levels:{ easy:{min:1,max:5,count:4}, medium:{min:1,max:10,count:6}, hard:{min:5,max:20,count:8} },
+  moneyAnswer:null, moneyCorrect:null,
+  settings:{ pin:"1234", sound:true, speak:true, check:true, showMistakes:true,
+             hideList:false, showPrices:true, easySums:true, currency:"RM", lang:"en" }
+};
+
+const T = {
+  en:{ subtitle:"Let's go shopping! Read the list and buy the items.",
+       subtitleMoney:"Buy the items, then work out how much to pay.",
+       hint:"Pick the items you want to buy.", list:"📋 SHOPPING LIST", cart:"🛒 MY CART",
+       total:"TOTAL ITEMS", add:"🛒 Add to Cart", check:"✅ Check my answer", again:"🔄 Try Again",
+       empty:"Your items will appear here.", teacher:"🔒 Teacher", reset:"↻ Reset",
+       how:'Tap "+" or "−" to choose how many you want. Then press Add to Cart!',
+       nolist:"No shopping list yet. Ask your teacher to make one!",
+       moneyQ:"How much do you need to pay?" },
+  ms:{ subtitle:"Mari membeli-belah! Baca senarai dan beli barangnya.",
+       subtitleMoney:"Beli barang, kemudian kira jumlah bayaran.",
+       hint:"Pilih barang yang anda mahu beli.", list:"📋 SENARAI BELIAN", cart:"🛒 TROLI SAYA",
+       total:"JUMLAH BARANG", add:"🛒 Masuk Troli", check:"✅ Semak jawapan", again:"🔄 Cuba Lagi",
+       empty:"Barang anda akan muncul di sini.", teacher:"🔒 Guru", reset:"↻ Set Semula",
+       how:'Tekan "+" atau "−" untuk pilih kuantiti. Kemudian tekan Masuk Troli!',
+       nolist:"Tiada senarai lagi. Minta guru buat satu!",
+       moneyQ:"Berapa jumlah yang perlu dibayar?" }
+};
+const t = k => (T[state.settings.lang] && T[state.settings.lang][k]) || T.en[k];
+
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const item = id => state.items.find(i=>i.id===id);
+const nameFor = (it,q) => q===1 ? it.name.toLowerCase() : it.plural;
+const money = n => state.settings.currency + " " + (Math.round(n*100)/100).toFixed(2);
+
+/* =======================================================
+   SOUND
+   ======================================================= */
+let actx=null;
+function tone(f,d,ty,v){
+  if(!state.settings.sound) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type=ty||"sine"; o.frequency.value=f;
+    g.gain.setValueAtTime(v||.14, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, actx.currentTime+d);
+    o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime+d);
+  }catch(e){}
+}
+const sClick=()=>tone(660,.08,"triangle",.12);
+const sPlus =()=>tone(880,.09,"sine",.13);
+const sMinus=()=>tone(420,.09,"sine",.11);
+const sGood =()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.22,"sine",.16),i*110));
+const sBad  =()=>{tone(300,.2,"square",.10);setTimeout(()=>tone(220,.28,"square",.10),160)};
+function say(txt){
+  if(!state.settings.speak || !window.speechSynthesis) return;
+  try{ speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(txt); u.rate=.9; u.pitch=1.15; speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* =======================================================
+   SCREENS
+   ======================================================= */
+function showHome(){
+  $("#screenHome").classList.remove("hide");
+  $("#screenGame").classList.add("hide");
+  $("#resultOverlay").classList.remove("show");
+  if(window.speechSynthesis) try{speechSynthesis.cancel()}catch(e){}
+}
+function showGame(){
+  $("#screenHome").classList.add("hide");
+  $("#screenGame").classList.remove("hide");
+  window.scrollTo(0,0);
+}
+function startGame(){
+  state.player = $("#hName").value.trim();
+  if(state.level === "teacher"){
+    if(!state.list.length) generateFromLevel("medium");
+  }else generateFromLevel(state.level);
+  state.round++;
+  state.attempts = 0;
+  softReset();
+  showGame();
+  renderAll();
+  sGood();
+  if(state.settings.hideList) startHideTimer();
+}
+
+/* =======================================================
+   RENDER — SHOP
+   ======================================================= */
+function renderShop(){
+  const w = $("#shop"); w.innerHTML="";
+  CATS.forEach(cat=>{
+    const its = state.items.filter(i=>i.cat===cat.id && i.on!==false);
+    if(!its.length) return;
+    const tag=document.createElement("span");
+    tag.className="tag"; tag.style.background=cat.color; tag.textContent=cat.icon+" "+cat.name;
+    w.appendChild(tag);
+    const shelf=document.createElement("div"); shelf.className="shelf";
+    const grid=document.createElement("div"); grid.className="catgrid";
+    its.forEach(it=>grid.appendChild(cardFor(it)));
+    shelf.appendChild(grid); w.appendChild(shelf);
+  });
+}
+function cardFor(it){
+  const q = state.picks[it.id]||0;
+  const d = document.createElement("div");
+  d.className="card"+(q>0?" picked":"");
+  d.dataset.id = it.id;
+  const priceTag = (state.mode==="money" && state.settings.showPrices)
+      ? '<div class="price">'+state.settings.currency+" "+fmtP(it.price)+'</div>' : '';
+  d.innerHTML = priceTag +
+    '<div class="nm">'+esc(it.name)+'</div>'+
+    '<div class="pic">'+it.emoji+'</div>'+
+    '<div class="stepper">'+
+      '<button class="minus" aria-label="fewer '+esc(it.name)+'">−</button>'+
+      '<input class="qty" type="number" inputmode="numeric" min="0" max="99" value="'+q+'" aria-label="how many '+esc(it.name)+'">'+
+      '<button class="plus" aria-label="more '+esc(it.name)+'">+</button>'+
+    '</div>';
+  d.querySelector(".minus").onclick=()=>bump(it.id,-1);
+  d.querySelector(".plus").onclick =()=>bump(it.id, 1);
+  const inp=d.querySelector(".qty");
+  inp.onchange=()=>setQty(it.id, parseInt(inp.value,10)||0);
+  inp.onfocus=()=>inp.select();
+  return d;
+}
+function fmtP(p){ return (Math.round(p*100)/100).toFixed(2).replace(/\.00$/,""); }
+function bump(id,d){ setQty(id,(state.picks[id]||0)+d); d>0?sPlus():sMinus(); }
+function setQty(id,v){
+  v=Math.max(0,Math.min(99,v|0));
+  if(v===0) delete state.picks[id]; else state.picks[id]=v;
+  if(state.checked){ state.checked=false; state.result=null; renderList(); }
+  renderShop(); renderCart();
+}
+
+/* =======================================================
+   RENDER — LIST
+   ======================================================= */
+let hideTimer=null, listHidden=false;
+function startHideTimer(){
+  clearTimeout(hideTimer); listHidden=false; renderList();
+  hideTimer=setTimeout(()=>{ listHidden=true; renderList(); }, 10000);
+}
+function renderList(){
+  const b=$("#listBody"); b.innerHTML="";
+  if(!state.list.length){ b.innerHTML='<div class="list-empty">🧺<br>'+t("nolist")+'</div>'; return; }
+  if(listHidden && !state.checked){
+    b.innerHTML='<div class="hidden-list">🙈<br>Remember the list!<br><button class="btn sm o" id="peek" style="margin-top:10px">👀 Peek for 3 seconds</button></div>';
+    $("#peek").onclick=()=>{ listHidden=false; renderList(); clearTimeout(hideTimer); hideTimer=setTimeout(()=>{listHidden=true;renderList();},3000); };
+    return;
+  }
+  state.list.forEach(ln=>{
+    const it=item(ln.itemId); if(!it) return;
+    const row=document.createElement("div"); row.className="list-item";
+    let mark="";
+    if(state.checked && state.result && state.settings.showMistakes){
+      const r=state.result.per[ln.itemId];
+      if(r){ row.classList.add(r.ok?"ok":"bad"); mark=r.ok?"✅":"❌"; }
+    }
+    row.innerHTML='<span class="pic">'+it.emoji+'</span><span class="qty">'+ln.qty+'</span>'+
+                  '<span>'+esc(nameFor(it,ln.qty))+'</span><span class="mark">'+mark+'</span>';
+    row.onclick=()=>{ sClick(); say(ln.qty+" "+nameFor(it,ln.qty)); };
+    b.appendChild(row);
+  });
+}
+
+/* =======================================================
+   RENDER — CART
+   ======================================================= */
+function renderCart(){
+  const box=$("#cartBox");
+  const totalPicked=Object.values(state.picks).reduce((a,b)=>a+b,0);
+  $("#totalNum").textContent=totalPicked;
+  $("#totalLab").textContent=t("total");
+
+  box.innerHTML="";
+  if(!state.checked){
+    box.innerHTML='<div class="cart-empty"><span class="big">🛒</span>'+t("empty")+'</div>';
+  }else{
+    const ids=Object.keys(state.picks);
+    if(!ids.length) box.innerHTML='<div class="cart-empty"><span class="big">🛒</span>'+t("empty")+'</div>';
+    else ids.forEach(id=>{
+      const it=item(id); if(!it) return;
+      const r=state.result?state.result.per[id]:null;
+      const c=document.createElement("div");
+      c.className="chip"+(state.settings.showMistakes&&r?(r.ok?" ok":" bad"):"");
+      c.innerHTML='<div class="pic">'+it.emoji+'</div><div class="n">'+state.picks[id]+'</div>';
+      c.title=it.name; box.appendChild(c);
+    });
+  }
+  const mq=$("#moneyQ");
+  if(state.mode==="money" && state.list.length){
+    mq.classList.remove("hide");
+    $("#moneyQText").textContent=t("moneyQ");
+    $("#moneyCur").textContent=state.settings.currency;
+  }else mq.classList.add("hide");
+
+  $("#btnAdd").textContent = state.checked ? t("again") : (state.mode==="money" ? t("check") : t("add"));
+  $("#btnAdd").className   = state.checked ? "bigbtn blue" : "bigbtn";
+  $("#abNum").textContent  = totalPicked;
+  $("#abAdd").textContent  = $("#btnAdd").textContent;
+}
+
+function renderPlayerBar(){
+  const b=$("#playerBar"); b.innerHTML="";
+  const add=(cls,html)=>{ const s=document.createElement("span"); s.className="pill "+(cls||""); s.innerHTML=html; b.appendChild(s); };
+  if(state.player) add("", "👦 "+esc(state.player));
+  add("", "Round <b>"+state.round+"</b>");
+  add("mode", state.mode==="money" ? "💰 Money game" : "🛒 Shopping game");
+  const lv={easy:"😀 Easy",medium:"🙂 Medium",hard:"😎 Hard",teacher:"👩‍🏫 Teacher's list"}[state.level];
+  add("", lv);
+  if(state.log.length){
+    const stars=state.log.reduce((a,r)=>a+r.stars,0);
+    add("", "⭐ <b>"+stars+"</b>");
+  }
+}
+function renderAll(){
+  $("#subtitle").textContent = state.mode==="money" ? t("subtitleMoney") : t("subtitle");
+  $("#shopHint").textContent = t("hint");
+  $("#listHead").textContent = t("list");
+  $("#cartHead").textContent = t("cart");
+  $("#howText").textContent  = t("how");
+  $("#btnTeacher").textContent = t("teacher");
+  $("#btnReset").textContent   = t("reset");
+  renderShop(); renderList(); renderCart(); renderPlayerBar(); updateSoundIcon();
+}
+
+/* =======================================================
+   CHECKING
+   ======================================================= */
+function required(){ const n={}; state.list.forEach(l=>n[l.itemId]=(n[l.itemId]||0)+l.qty); return n; }
+function billTotal(){ const n=required(); return Object.keys(n).reduce((s,id)=>{ const it=item(id); return s + (it? it.price*n[id] : 0); },0); }
+
+function check(){
+  const need=required(), per={};
+  let right=0,total=0; const wrong=[],miss=[],extra=[];
+  const ids=new Set([...Object.keys(need),...Object.keys(state.picks)]);
+  ids.forEach(id=>{
+    const want=need[id]||0, got=state.picks[id]||0, ok=want===got;
+    per[id]={want,got,ok};
+    if(want>0){ total++; if(ok) right++; }
+    const it=item(id); if(!it) return;
+    if(!ok){
+      if(want===0) extra.push({it,got});
+      else if(got===0) miss.push({it,want});
+      else wrong.push({it,got,want});
+    }
+  });
+  const itemsPerfect=[...ids].every(id=>per[id].ok) && state.list.length>0;
+  return {per,right,total,itemsPerfect,wrong,miss,extra};
+}
+
+function onAddToCart(){
+  if(!state.list.length){ sBad(); return; }
+  if(state.checked){ retry(); return; }
+
+  state.attempts++;
+  flyToCart();
+  setTimeout(()=>{
+    state.checked=true;
+    state.result=state.settings.check ? check() : null;
+    if(state.mode==="money"){
+      const v=$("#moneyIn").value.trim();
+      state.moneyAnswer = v==="" ? null : parseFloat(v);
+      state.moneyCorrect = state.moneyAnswer!==null && Math.abs(state.moneyAnswer-billTotal())<0.005;
+    }else{ state.moneyAnswer=null; state.moneyCorrect=null; }
+    $("#cartBox").classList.add("flash");
+    setTimeout(()=>$("#cartBox").classList.remove("flash"),460);
+    renderList(); renderCart();
+    if(state.settings.check) showResults(); else sClick();
+  }, 640);
+}
+function retry(){
+  state.checked=false; state.result=null;
+  $("#resultOverlay").classList.remove("show");
+  renderList(); renderCart(); sClick();
+}
+function softReset(){
+  state.picks={}; state.checked=false; state.result=null;
+  state.moneyAnswer=null; state.moneyCorrect=null;
+  const mi=$("#moneyIn"); if(mi) mi.value="";
+  const mf=$("#moneyFb"); if(mf){ mf.textContent=""; mf.className="fb"; }
+  listHidden=false; clearTimeout(hideTimer);
+  renderShop(); renderList(); renderCart();
+}
+
+/* fly-to-cart animation */
+function flyToCart(){
+  const box=$("#cartBox"); if(!box) return;
+  const br=box.getBoundingClientRect();
+  const cx=br.left+br.width/2, cy=br.top+br.height/2;
+  $$("#shop .card.picked .pic").slice(0,14).forEach((pic,i)=>{
+    const r=pic.getBoundingClientRect();
+    const c=pic.cloneNode(true);
+    c.className="flyer";
+    c.style.left=r.left+"px"; c.style.top=r.top+"px";
+    c.style.fontSize=getComputedStyle(pic).fontSize;
+    document.body.appendChild(c);
+    setTimeout(()=>{
+      c.style.transform="translate("+(cx-r.left-18)+"px,"+(cy-r.top-18)+"px) scale(.45)";
+      c.style.opacity=".25";
+    }, 20+i*35);
+    setTimeout(()=>c.remove(), 900+i*35);
+  });
+}
+
+/* =======================================================
+   RESULTS
+   ======================================================= */
+function starsFor(r){
+  if(!r) return 0;
+  const pct = r.total ? r.right/r.total : 0;
+  let s = pct===1 ? 3 : pct>=.7 ? 2 : pct>=.4 ? 1 : 0;
+  if(state.mode==="money"){ if(!state.moneyCorrect) s=Math.max(0,s-1); }
+  if(state.attempts>1 && s===3) s=2;
+  return s;
+}
+function showResults(){
+  const r=state.result; const s=starsFor(r);
+  const allRight = r.itemsPerfect && (state.mode!=="money" || state.moneyCorrect);
+  $("#rStars").innerHTML = [0,1,2].map(i=>'<span class="star">'+(i<s?"⭐":"☆")+'</span>').join("");
+  $("#rTitle").textContent = allRight ? (state.player? "Great job, "+state.player+"!" : "Great job!")
+                : (s>=2 ? "So close!" : "Keep trying!");
+  $("#rScore").textContent = "You got " + r.right + " out of " + r.total + " lines right"
+                + (state.attempts>1 ? "  ·  try "+state.attempts : "");
+
+  const box=$("#rBox"); box.innerHTML="";
+  const li=(html)=>{ const d=document.createElement("div"); d.className="li"; d.innerHTML=html; box.appendChild(d); };
+  if(state.mode==="money"){
+    const bt=billTotal();
+    if(state.moneyAnswer===null) li('💰 You did not write an amount. The bill was <b>'+money(bt)+'</b>.');
+    else if(state.moneyCorrect)  li('💰 ✅ The bill was <b>'+money(bt)+'</b> — correct!');
+    else li('💰 ❌ You wrote '+money(state.moneyAnswer)+'. The bill was <b>'+money(bt)+'</b>.');
+  }
+  if(allRight){
+    li('🎉 Everything on the list is in your cart.');
+  }else if(state.settings.showMistakes){
+    r.miss.forEach(m=>li(m.it.emoji+' You forgot the <b>'+esc(m.it.plural)+'</b> — you needed <b>'+m.want+'</b>.'));
+    r.wrong.forEach(m=>li(m.it.emoji+' You took <b>'+m.got+'</b> '+esc(nameFor(m.it,m.got))+' — you needed <b>'+m.want+'</b>.'));
+    r.extra.forEach(m=>li(m.it.emoji+' <b>'+esc(m.it.plural)+'</b> were not on the list.'));
+  }else li('Look at the list again and try once more.');
+
+  $("#rNew").classList.toggle("hide", state.level==="teacher");
+  $("#resultOverlay").classList.add("show");
+
+  if(allRight){ sGood(); confetti(); logRound(s,true); }
+  else { sBad(); logRound(s,false); }
+  renderPlayerBar();
+}
+function logRound(stars, perfect){
+  const r=state.result;
+  state.log.push({
+    round: state.round, player: state.player||"—",
+    mode: state.mode==="money"?"Money":"Shopping",
+    level: state.level, score: r.right+"/"+r.total,
+    stars, perfect, tries: state.attempts,
+    money: state.mode==="money" ? (state.moneyCorrect?"✔":"✘") : "—",
+    time: new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})
+  });
+}
+function confetti(){
+  const bits=["🎉","⭐","🎈","🍎","🥕","🍓","✨","🎊"];
+  for(let i=0;i<36;i++){
+    const s=document.createElement("div");
+    s.className="confetti"; s.textContent=bits[i%bits.length];
+    s.style.left=Math.random()*100+"vw";
+    s.style.animationDuration=(2+Math.random()*1.8)+"s";
+    s.style.animationDelay=(Math.random()*.6)+"s";
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(),4800);
+  }
+}
+
+/* =======================================================
+   LIST GENERATION
+   ======================================================= */
+function generateFromLevel(lvl){
+  const L=state.levels[lvl]||state.levels.medium;
+  let count=L.count, lo=L.min, hi=L.max, maxPrice=0;
+  if(state.mode==="money" && state.settings.easySums){   // keep the bill addable in your head
+    const cap={easy:{hi:3,count:3,p:3}, medium:{hi:4,count:4,p:5}, hard:{hi:5,count:5,p:5}}[lvl] || {hi:5,count:5,p:5};
+    hi=Math.min(hi,cap.hi); lo=Math.min(lo,hi); count=Math.min(count,cap.count); maxPrice=cap.p;
+  }
+  makeList({count, lo, hi, maxPrice, repeat:false, cats:CATS.map(c=>c.id)});
+}
+function makeList(o){
+  let {count,lo,hi,repeat,cats,maxPrice}=o;
+  if(lo>hi){const x=lo;lo=hi;hi=x;}
+  let pool=state.items.filter(i=>i.on!==false && (cats&&cats.length? cats.includes(i.cat):true));
+  if(maxPrice){ const cheap=pool.filter(i=>i.price<=maxPrice); if(cheap.length>=Math.min(count,3)) pool=cheap; }
+  if(!pool.length) pool=state.items.filter(i=>i.on!==false);
+  if(!pool.length) return;
+  const bag=shuffle(pool.slice()), used=[], lines=[];
+  const rq=()=>lo+Math.floor(Math.random()*(hi-lo+1));
+  let next=0;
+  for(let i=0;i<count;i++){
+    let it=null;
+    if(repeat && used.length && Math.random()<.3) it=item(used[Math.floor(Math.random()*used.length)]);
+    else if(next<bag.length) it=bag[next++];
+    else if(repeat) it=pool[Math.floor(Math.random()*pool.length)];
+    else break;
+    if(!it) break;
+    used.push(it.id); lines.push({itemId:it.id, qty:rq()});
+  }
+  state.list=shuffle(lines);
+}
+function generateRandomFromPanel(){
+  makeList({
+    count: clamp(int("#rCount",6),1,20),
+    lo: clamp(int("#rMin",1),1,99),
+    hi: clamp(int("#rMax",10),1,99),
+    repeat: $("#rRepeat").checked,
+    cats: $$("#rCats input:checked").map(i=>i.value)
+  });
+  state.attempts=0; softReset(); renderListEdit(); renderBuildGrid();
+}
+
+/* =======================================================
+   TEACHER PANEL
+   ======================================================= */
+function openPanel(tab){
+  $("#overlay").classList.add("show");
+  $("#pinGate").style.display="block"; $("#panelBody").style.display="none";
+  $("#pinInput").value=""; $("#pinErr").textContent="";
+  openPanel.wanted = tab || "build";
+  setTimeout(()=>$("#pinInput").focus(),60);
+}
+function closePanel(){ $("#overlay").classList.remove("show"); }
+function tryPin(){
+  if($("#pinInput").value.trim()===state.settings.pin){
+    $("#pinGate").style.display="none"; $("#panelBody").style.display="block";
+    buildAdmin(); gotoTab(openPanel.wanted||"build");
+  }else{ $("#pinErr").textContent="Wrong PIN — try again."; $("#pinInput").value=""; sBad(); }
+}
+function gotoTab(name){
+  $$(".tab").forEach(x=>x.classList.toggle("on", x.dataset.pane===name));
+  $$(".pane").forEach(p=>p.classList.remove("on"));
+  const el=$("#pane-"+name); if(el) el.classList.add("on");
+}
+function buildAdmin(){ renderBuildGrid(); renderListEdit(); renderRandomCats(); renderItemsAdmin(); renderEmojiGrid(); renderSaved(); renderLog(); syncSettingsUI(); }
+
+let buildDraft={};
+function renderBuildGrid(){
+  buildDraft={}; const n=required(); Object.keys(n).forEach(k=>buildDraft[k]=n[k]);
+  const g=$("#buildGrid"); g.innerHTML="";
+  state.items.filter(i=>i.on!==false).forEach(it=>{
+    const v=buildDraft[it.id]||"";
+    const d=document.createElement("div");
+    d.className="pick"+(v?" on":"");
+    d.innerHTML='<div class="pic">'+it.emoji+'</div><div class="nm" title="'+esc(it.name)+'">'+esc(it.name)+'</div>'+
+                '<input type="number" min="0" max="99" value="'+v+'" placeholder="0">';
+    const inp=d.querySelector("input");
+    inp.oninput=()=>{ const k=parseInt(inp.value,10)||0;
+      if(k>0){buildDraft[it.id]=k;d.classList.add("on");}else{delete buildDraft[it.id];d.classList.remove("on");} };
+    g.appendChild(d);
+  });
+}
+function renderListEdit(){
+  const w=$("#listEdit"); w.innerHTML="";
+  if(!state.list.length){ w.innerHTML='<div class="le-row" style="color:#94a3b8">The list is empty.</div>'; return; }
+  state.list.forEach((ln,i)=>{
+    const it=item(ln.itemId); if(!it) return;
+    const r=document.createElement("div"); r.className="le-row";
+    r.innerHTML='<span class="pic">'+it.emoji+'</span><input type="number" min="1" max="99" value="'+ln.qty+'">'+
+                '<span>'+esc(it.plural)+'</span><button class="del">Remove</button>';
+    r.querySelector("input").onchange=e=>{ ln.qty=Math.max(1,parseInt(e.target.value,10)||1); renderList(); };
+    r.querySelector(".del").onclick=()=>{ state.list.splice(i,1); renderListEdit(); renderList(); };
+    w.appendChild(r);
+  });
+}
+function renderRandomCats(){
+  const w=$("#rCats"); w.innerHTML="";
+  CATS.forEach(c=>{ const l=document.createElement("label"); l.className="chk";
+    l.innerHTML='<input type="checkbox" value="'+c.id+'" checked> '+c.icon+" "+c.name; w.appendChild(l); });
+}
+function renderItemsAdmin(){
+  const g=$("#itemsAdmin"); g.innerHTML="";
+  state.items.forEach((it,idx)=>{
+    const d=document.createElement("div");
+    d.className="pick"+(it.on!==false?" on":"");
+    d.innerHTML='<div class="pic">'+it.emoji+'</div><div class="nm" title="'+esc(it.name)+'">'+esc(it.name)+'</div>'+
+      '<input type="number" class="pr" min="0" step="0.5" value="'+it.price+'"><div class="plab">price</div>'+
+      '<label style="display:flex;gap:4px;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#6b7c96;margin-top:3px">'+
+      '<input type="checkbox" class="sh" style="width:15px;height:15px" '+(it.on!==false?"checked":"")+'> show</label>'+
+      (it.custom?'<button class="btn sm p" style="margin-top:3px;width:100%">Delete</button>':'');
+    d.querySelector(".pr").onchange=e=>{ it.price=Math.max(0,parseFloat(e.target.value)||0); renderShop(); };
+    d.querySelector(".sh").onchange=e=>{
+      it.on=e.target.checked;
+      if(!it.on){ state.list=state.list.filter(l=>l.itemId!==it.id); delete state.picks[it.id]; }
+      d.classList.toggle("on",it.on);
+      renderShop(); renderList(); renderCart(); renderBuildGrid(); renderListEdit();
+    };
+    const del=d.querySelector("button.p");
+    if(del) del.onclick=()=>{
+      state.items.splice(idx,1);
+      state.list=state.list.filter(l=>l.itemId!==it.id); delete state.picks[it.id];
+      renderItemsAdmin(); renderShop(); renderList(); renderCart(); renderBuildGrid(); renderListEdit();
+    };
+    g.appendChild(d);
+  });
+}
+function renderEmojiGrid(){
+  const g=$("#emojiGrid"); g.innerHTML="";
+  EMOJI_LIST.forEach(e=>{
+    const b=document.createElement("button"); b.textContent=e;
+    b.onclick=()=>{ $("#niEmoji").value=e; $$("#emojiGrid button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); };
+    g.appendChild(b);
+  });
+  const sel=$("#niCat"); sel.innerHTML="";
+  CATS.forEach(c=>{ const o=document.createElement("option"); o.value=c.id; o.textContent=c.icon+" "+c.name; sel.appendChild(o); });
+  $("#sCurrency").value=state.settings.currency;
+}
+function addCustomItem(){
+  const name=$("#niName").value.trim();
+  if(!name){ $("#niName").focus(); return; }
+  let plural=$("#niPlural").value.trim();
+  if(!plural) plural=/s$/i.test(name)?name.toLowerCase():name.toLowerCase()+"s";
+  state.items.push({
+    id:"c"+Date.now().toString(36)+Math.floor(Math.random()*99),
+    name, plural, emoji:$("#niEmoji").value.trim()||"🛒",
+    cat:$("#niCat").value, price:Math.max(0,parseFloat($("#niPrice").value)||1), on:true, custom:true
+  });
+  $("#niName").value=""; $("#niPlural").value="";
+  renderItemsAdmin(); renderShop(); renderBuildGrid(); sGood();
+}
+
+/* class log */
+function renderLog(){
+  const rows=state.log;
+  const played=rows.length, perfect=rows.filter(r=>r.perfect).length;
+  const stars=rows.reduce((a,r)=>a+r.stars,0);
+  const pct=rows.length? Math.round(rows.reduce((a,r)=>{const [x,y]=r.score.split("/").map(Number); return a+(y?x/y:0);},0)/rows.length*100):0;
+  $("#statRow").innerHTML =
+    stat(played,"Rounds")+stat(perfect,"All correct")+stat(stars,"Stars")+stat(pct+"%","Average");
+  let html='<tr><th>#</th><th>Player</th><th>Game</th><th>Level</th><th>Score</th><th>Money</th><th>Tries</th><th>Stars</th><th>Time</th></tr>';
+  if(!rows.length) html+='<tr><td colspan="9" style="color:#94a3b8">No rounds played yet.</td></tr>';
+  rows.slice().reverse().forEach(r=>{
+    html+='<tr><td>'+r.round+'</td><td>'+esc(r.player)+'</td><td>'+r.mode+'</td><td>'+r.level+'</td><td>'+r.score+'</td><td>'+r.money+'</td><td>'+r.tries+'</td><td>'+"⭐".repeat(r.stars)+'</td><td>'+r.time+'</td></tr>';
+  });
+  $("#logTable").innerHTML=html;
+}
+const stat=(n,l)=>'<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';
+
+/* settings */
+function syncSettingsUI(){
+  $("#sCheck").checked=state.settings.check;
+  $("#sShowMistakes").checked=state.settings.showMistakes;
+  $("#sSound").checked=state.settings.sound;
+  $("#sSpeak").checked=state.settings.speak;
+  $("#sHideList").checked=state.settings.hideList;
+  $("#sShowPrices").checked=state.settings.showPrices;
+  $("#sEasySums").checked=state.settings.easySums;
+  $("#sLang").value=state.settings.lang;
+  $("#sPin").value=state.settings.pin;
+  $("#sCurrency").value=state.settings.currency;
+}
+function bindSettings(){
+  const map={sCheck:"check",sShowMistakes:"showMistakes",sSound:"sound",sSpeak:"speak",sHideList:"hideList",sShowPrices:"showPrices",sEasySums:"easySums"};
+  Object.keys(map).forEach(k=>{
+    $("#"+k).onchange=e=>{ state.settings[map[k]]=e.target.checked; renderAll(); };
+  });
+  $("#sLang").onchange=e=>{ state.settings.lang=e.target.value; renderAll(); };
+  $("#sCurrency").onchange=e=>{ state.settings.currency=e.target.value.trim()||"RM"; renderAll(); };
+  $("#btnSavePin").onclick=()=>{
+    const v=$("#sPin").value.trim();
+    if(!v){ $("#pinMsg").textContent="PIN cannot be empty."; return; }
+    state.settings.pin=v; $("#pinMsg").textContent="PIN saved ✔";
+    setTimeout(()=>$("#pinMsg").textContent="",2200);
+  };
+}
+function renderSaved(){
+  const w=$("#savedWrap"); w.innerHTML="";
+  const keys=Object.keys(state.saved);
+  if(!keys.length){ w.innerHTML='<span class="mini">Nothing saved yet.</span>'; return; }
+  keys.forEach(k=>{
+    const s=document.createElement("span"); s.className="s";
+    s.innerHTML='<b>'+esc(k)+'</b> <button title="Load">▶</button> <button title="Delete">✕</button>';
+    const [load,del]=s.querySelectorAll("button");
+    load.onclick=()=>{ state.list=state.saved[k].map(o=>({...o})); softReset(); renderListEdit(); renderBuildGrid(); };
+    del.onclick=()=>{ delete state.saved[k]; renderSaved(); };
+    w.appendChild(s);
+  });
+}
+
+/* print */
+function printList(){
+  const a=$("#printArea");
+  a.innerHTML="<h1>🛒 My Shopping List</h1><p style='font-size:16px'>Name: ______________________  Date: ____________</p>";
+  state.list.forEach(l=>{
+    const it=item(l.itemId); if(!it) return;
+    const d=document.createElement("div"); d.className="pline";
+    d.innerHTML='<span class="box"></span><span>'+it.emoji+'</span><span>'+l.qty+' '+esc(nameFor(it,l.qty))+'</span>';
+    a.appendChild(d);
+  });
+  if(state.mode==="money"){
+    const d=document.createElement("div"); d.className="pline";
+    d.innerHTML='<span>Total to pay: '+state.settings.currency+' ____________</span>'; a.appendChild(d);
+  }
+  window.print();
+}
+function printLog(){
+  const a=$("#printArea");
+  a.innerHTML="<h1>📊 My Little Supermarket — session summary</h1><p>"+new Date().toLocaleString()+"</p>"+
+    "<table>"+$("#logTable").innerHTML+"</table>";
+  window.print();
+}
+
+/* export / import */
+function exportSetup(){
+  const d={v:2, items:state.items, list:state.list, settings:state.settings, saved:state.saved, levels:state.levels};
+  $("#ioBox").value=JSON.stringify(d); $("#ioBox").select();
+  $("#ioMsg").textContent="Copy this text (Ctrl+C).";
+}
+function importSetup(){
+  try{
+    const d=JSON.parse($("#ioBox").value);
+    if(d.items) state.items=d.items.map(i=>({price:1,...i}));
+    if(d.list) state.list=d.list;
+    if(d.settings) state.settings=Object.assign(state.settings,d.settings);
+    if(d.saved) state.saved=d.saved;
+    if(d.levels) state.levels=d.levels;
+    softReset(); buildAdmin(); renderAll();
+    $("#ioMsg").textContent="Loaded ✔";
+  }catch(e){ $("#ioMsg").textContent="That text is not a valid setup."; }
+}
+function downloadSetup(){
+  exportSetup();
+  const blob=new Blob([$("#ioBox").value],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="supermarket-setup.json"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  $("#ioMsg").textContent="File downloaded ✔";
+}
+
+/* helpers */
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function clamp(n,lo,hi){ return Math.max(lo,Math.min(hi,n)); }
+function int(sel,d){ const el=$(sel); const v=el?parseInt(el.value,10):NaN; return isNaN(v)?d:v; }
+function updateSoundIcon(){
+  $("#btnSound").textContent = state.settings.sound?"🔊":"🔇";
+  $("#btnSoundHome").textContent = state.settings.sound?"🔊 Sound: on":"🔇 Sound: off";
+}
+
+/* =======================================================
+   EVENTS
+   ======================================================= */
+$$("#modeTiles .tile").forEach(b=>b.onclick=()=>{
+  $$("#modeTiles .tile").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+  state.mode=b.dataset.mode; sClick();
+});
+$$("#levelBtns .lvl").forEach(b=>b.onclick=()=>{
+  $$("#levelBtns .lvl").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+  state.level=b.dataset.lvl; sClick();
+});
+$("#btnStart").onclick        = startGame;
+$("#btnTeacherHome").onclick  = ()=>openPanel("build");
+$("#btnClassHome").onclick    = ()=>openPanel("class");
+$("#btnSoundHome").onclick    = ()=>{ state.settings.sound=!state.settings.sound; updateSoundIcon(); sClick(); };
+
+$("#btnAdd").onclick     = onAddToCart;
+$("#abAdd").onclick      = onAddToCart;
+$("#abList").onclick     = ()=>{ document.querySelector(".list-panel").scrollIntoView({behavior:"smooth",block:"start"}); };
+$("#btnReset").onclick   = ()=>{ softReset(); };
+$("#btnHome").onclick    = showHome;
+$("#btnSound").onclick   = ()=>{ state.settings.sound=!state.settings.sound; updateSoundIcon(); sClick(); };
+$("#btnSpeak").onclick   = ()=>{
+  if(!state.list.length) return;
+  const txt=state.list.map(l=>{const it=item(l.itemId);return it?l.qty+" "+nameFor(it,l.qty):"";}).join(", ");
+  const was=state.settings.speak; state.settings.speak=true; say("Your shopping list. "+txt); state.settings.speak=was;
+};
+$("#btnTeacher").onclick = ()=>openPanel("build");
+$("#btnCloseModal").onclick = ()=>{ closePanel(); renderAll(); };
+$("#btnPinGo").onclick   = tryPin;
+$("#pinInput").addEventListener("keydown",e=>{ if(e.key==="Enter") tryPin(); });
+$("#overlay").addEventListener("click",e=>{ if(e.target.id==="overlay"){ closePanel(); renderAll(); } });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closePanel(); } });
+$$(".tab").forEach(tb=>tb.onclick=()=>gotoTab(tb.dataset.pane));
+
+$("#rAgain").onclick = retry;
+$("#rNew").onclick   = ()=>{
+  $("#resultOverlay").classList.remove("show");
+  state.round++; state.attempts=0;
+  generateFromLevel(state.level==="teacher"?"medium":state.level);
+  softReset(); renderPlayerBar(); sGood();
+  if(state.settings.hideList) startHideTimer();
+};
+$("#rHome").onclick  = ()=>{ $("#resultOverlay").classList.remove("show"); showHome(); };
+
+$("#btnApplyBuild").onclick=()=>{
+  state.list=Object.keys(buildDraft).map(id=>({itemId:id,qty:buildDraft[id]}));
+  state.attempts=0; softReset(); renderListEdit(); sGood();
+};
+$("#btnClearList").onclick=()=>{ state.list=[]; buildDraft={}; softReset(); renderListEdit(); renderBuildGrid(); };
+$("#btnPrint").onclick=printList;
+$("#btnPrint2").onclick=printList;
+$("#btnSplit").onclick=()=>{
+  if(!state.list.length) return;
+  let bi=0; state.list.forEach((l,i)=>{ if(l.qty>state.list[bi].qty) bi=i; });
+  const ln=state.list[bi]; if(ln.qty<2) return;
+  const a=Math.max(1,Math.round(ln.qty*.6)), b=ln.qty-a;
+  state.list.splice(bi,1,{itemId:ln.itemId,qty:a},{itemId:ln.itemId,qty:b});
+  renderListEdit(); renderList();
+};
+$("#btnSaveList").onclick=()=>{
+  const n=$("#saveName").value.trim()||("List "+(Object.keys(state.saved).length+1));
+  state.saved[n]=state.list.map(o=>({...o})); $("#saveName").value=""; renderSaved();
+};
+$("#btnGen").onclick=()=>{ generateRandomFromPanel(); sGood(); };
+$$("[data-preset]").forEach(b=>b.onclick=()=>{
+  const [lo,hi,c]=b.dataset.preset.split(",");
+  $("#rMin").value=lo; $("#rMax").value=hi; $("#rCount").value=c;
+});
+$("#btnSaveLvl").onclick=()=>{
+  const k=$("#lvlTarget").value;
+  state.levels[k]={min:clamp(int("#rMin",1),1,99),max:clamp(int("#rMax",10),1,99),count:clamp(int("#rCount",6),1,20)};
+  $("#lvlMsg").textContent="Saved to "+k+" ✔"; setTimeout(()=>$("#lvlMsg").textContent="",2400);
+};
+$("#btnAddItem").onclick=addCustomItem;
+$("#btnRoundPrices").onclick=()=>{ state.items.forEach(i=>i.price=Math.max(1,Math.round(i.price))); renderItemsAdmin(); renderShop(); };
+$("#btnPrintLog").onclick=printLog;
+$("#btnClearLog").onclick=()=>{ state.log=[]; state.round=0; renderLog(); renderPlayerBar(); };
+$("#btnExport").onclick=exportSetup;
+$("#btnImport").onclick=importSetup;
+$("#btnDownload").onclick=downloadSetup;
+$("#moneyIn").addEventListener("keydown",e=>{ if(e.key==="Enter") onAddToCart(); });
+bindSettings();
+
+/* =======================================================
+   START
+   ======================================================= */
+generateFromLevel("easy");
+renderAll();
+showHome();
+</script>
+</body>
+</html>
