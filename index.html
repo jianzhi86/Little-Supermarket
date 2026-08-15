@@ -973,8 +973,8 @@ function onAddToCart(){
     state.moneyCorrect = true;
   }else{
     const v=$("#itemsIn").value.trim();
-    const answer = v==="" ? null : parseInt(v,10);
-    const correct = answer!==null && answer===totalListQty();
+    const answer = v==="" ? null : Math.round(Number(v));
+    const correct = answer!==null && !isNaN(answer) && answer===totalListQty();
     const fb=$("#itemsFb");
     if(!correct){
       fb.textContent = answer===null ? "Work out the total number of items first!" : "Not quite — add up the list again and try once more.";
