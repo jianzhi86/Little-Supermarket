@@ -594,16 +594,16 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
 
         <!-- CLASS -->
         <div class="pane" id="pane-class">
-          <h3 class="sec">This session</h3>
+          <h3 class="sec">Class history</h3>
           <div class="statrow" id="statRow"></div>
           <div style="max-height:300px;overflow:auto;border:2px solid var(--line);border-radius:12px">
             <table class="log" id="logTable"></table>
           </div>
           <div class="row" style="margin-top:12px">
             <button class="btn o" id="btnPrintLog">🖨️ Print / save summary</button>
-            <button class="btn grey" id="btnClearLog">Clear session</button>
+            <button class="btn grey" id="btnRefreshLog">🔄 Refresh</button>
           </div>
-          <div class="mini">The list clears when the page is closed — print or download it before you finish.</div>
+          <div class="mini">This shows every round played on this link, from any device.</div>
         </div>
 
         <!-- SETTINGS -->
@@ -651,6 +651,33 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
 
 <script>
 "use strict";
+/* =======================================================
+   CLOUD LOG (Supabase) — shared class dashboard across devices
+   ======================================================= */
+const SUPABASE_URL = "https://zoxgihqvlxkyehghrtyo.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpveGdpaHF2bHhreWVoZ2hydHlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzMzNjQsImV4cCI6MjA4ODE0OTM2NH0.zSfujH8wk9QGAieFCrVWfMUQd6XJgobekhbHEnDIfwM";
+async function saveRoundToCloud(entry){
+  try{
+    await fetch(SUPABASE_URL+"/rest/v1/supermarket_game_plays", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "apikey":SUPABASE_ANON_KEY,
+        "Authorization":"Bearer "+SUPABASE_ANON_KEY,
+        "Prefer":"return=minimal"
+      },
+      body: JSON.stringify(entry)
+    });
+  }catch(e){ /* offline or blocked — local log still has this round */ }
+}
+async function fetchCloudLog(){
+  const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_game_plays?select=*&order=played_at.desc&limit=500", {
+    headers:{ "apikey":SUPABASE_ANON_KEY, "Authorization":"Bearer "+SUPABASE_ANON_KEY }
+  });
+  if(!res.ok) throw new Error("cloud log fetch failed");
+  return res.json();
+}
+
 /* =======================================================
    DATA
    ======================================================= */
@@ -1117,13 +1144,19 @@ function showResults(){
 }
 function logRound(stars, perfect){
   const r=state.result;
-  state.log.push({
+  const entry={
     round: state.round, player: state.player||"—",
     mode: state.mode==="money"?"Money":"Shopping",
     level: state.level, score: r.right+"/"+r.total,
     stars, perfect, tries: state.attempts,
     money: state.mode==="money" ? (state.moneyCorrect?"✔":"✘") : "—",
     time: new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})
+  };
+  state.log.push(entry);
+  saveRoundToCloud({
+    player: entry.player, mode: entry.mode, level: entry.level, round: entry.round,
+    score: entry.score, stars: entry.stars, perfect: entry.perfect,
+    tries: entry.tries, money: entry.money
   });
 }
 function confetti(){
@@ -1204,6 +1237,7 @@ function gotoTab(name){
   $$(".tab").forEach(x=>x.classList.toggle("on", x.dataset.pane===name));
   $$(".pane").forEach(p=>p.classList.remove("on"));
   const el=$("#pane-"+name); if(el) el.classList.add("on");
+  if(name==="class") refreshCloudLog();
 }
 function buildAdmin(){ renderBuildGrid(); renderListEdit(); renderRandomCats(); renderItemsAdmin(); renderEmojiGrid(); renderSaved(); renderLog(); syncSettingsUI(); }
 
@@ -1293,8 +1327,8 @@ function addCustomItem(){
 }
 
 /* class log */
-function renderLog(){
-  const rows=state.log;
+function renderLog(rowsIn, alreadyOrdered){
+  const rows=rowsIn||state.log;
   const played=rows.length, perfect=rows.filter(r=>r.perfect).length;
   const stars=rows.reduce((a,r)=>a+r.stars,0);
   const pct=rows.length? Math.round(rows.reduce((a,r)=>{const [x,y]=r.score.split("/").map(Number); return a+(y?x/y:0);},0)/rows.length*100):0;
@@ -1302,10 +1336,24 @@ function renderLog(){
     stat(played,"Rounds")+stat(perfect,"All correct")+stat(stars,"Stars")+stat(pct+"%","Average");
   let html='<tr><th>#</th><th>Player</th><th>Game</th><th>Level</th><th>Score</th><th>Money</th><th>Tries</th><th>Stars</th><th>Time</th></tr>';
   if(!rows.length) html+='<tr><td colspan="9" style="color:#94a3b8">No rounds played yet.</td></tr>';
-  rows.slice().reverse().forEach(r=>{
+  (alreadyOrdered ? rows : rows.slice().reverse()).forEach(r=>{
     html+='<tr><td>'+r.round+'</td><td>'+esc(r.player)+'</td><td>'+r.mode+'</td><td>'+r.level+'</td><td>'+r.score+'</td><td>'+r.money+'</td><td>'+r.tries+'</td><td>'+"⭐".repeat(r.stars)+'</td><td>'+r.time+'</td></tr>';
   });
   $("#logTable").innerHTML=html;
+}
+function refreshCloudLog(){
+  $("#statRow").innerHTML = '<div class="stat"><div class="n">…</div><div class="l">Loading class history</div></div>';
+  fetchCloudLog().then(rows=>{
+    const mapped = rows.map(r=>({
+      round:r.round, player:r.player, mode:r.mode, level:r.level, score:r.score,
+      stars:r.stars, perfect:r.perfect, tries:r.tries, money:r.money,
+      time:new Date(r.played_at).toLocaleString([], {month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"})
+    }));
+    renderLog(mapped, true);
+  }).catch(()=>{
+    renderLog(state.log);
+    $("#statRow").insertAdjacentHTML("beforeend", '<div class="mini" style="color:#d64545">Could not load class history from the cloud — showing this device only.</div>');
+  });
 }
 const stat=(n,l)=>'<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';
 
@@ -1488,7 +1536,7 @@ $("#btnSaveLvl").onclick=()=>{
 $("#btnAddItem").onclick=addCustomItem;
 $("#btnRoundPrices").onclick=()=>{ state.items.forEach(i=>i.price=Math.max(1,Math.round(i.price))); renderItemsAdmin(); renderShop(); };
 $("#btnPrintLog").onclick=printLog;
-$("#btnClearLog").onclick=()=>{ state.log=[]; state.round=0; renderLog(); renderPlayerBar(); };
+$("#btnRefreshLog").onclick=refreshCloudLog;
 $("#btnExport").onclick=exportSetup;
 $("#btnImport").onclick=importSetup;
 $("#btnDownload").onclick=downloadSetup;
