@@ -503,7 +503,6 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
       <input type="password" id="pinInput" inputmode="numeric" style="font-size:26px;text-align:center;width:170px;letter-spacing:8px" maxlength="8" placeholder="••••">
       <div style="margin-top:12px"><button class="btn g" id="btnPinGo">Enter</button></div>
       <div class="err" id="pinErr"></div>
-      <div class="mini" style="margin-top:8px">Default PIN is <b>1234</b> — change it in Settings.</div>
     </div>
 
     <div id="panelBody" style="display:none">
@@ -702,7 +701,7 @@ const state = {
   player:"", mode:"shop", level:"easy",
   levels:{ easy:{min:1,max:5,count:4}, medium:{min:1,max:10,count:6}, hard:{min:5,max:20,count:8} },
   moneyAnswer:null, moneyCorrect:null,
-  settings:{ pin:"1234", sound:true, speak:true, check:true, showMistakes:true,
+  settings:{ pin:"0110", sound:true, speak:true, check:true, showMistakes:true,
              hideList:false, showPrices:true, easySums:true, currency:"RM", lang:"en" }
 };
 
