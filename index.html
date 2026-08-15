@@ -443,6 +443,12 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
           <div class="fb" id="moneyFb"></div>
         </div>
 
+        <div class="moneyq hide" id="itemsQ">
+          <div class="q">How many items in total?</div>
+          <div class="inrow"><input type="number" id="itemsIn" step="1" min="0" placeholder="0"></div>
+          <div class="fb" id="itemsFb"></div>
+        </div>
+
         <button class="bigbtn" id="btnAdd">🛒 Add to Cart</button>
       </div>
     </div>
@@ -884,6 +890,11 @@ function renderCart(){
     $("#moneyCur").textContent=state.settings.currency;
   }else mq.classList.add("hide");
 
+  const iq=$("#itemsQ");
+  if(state.mode!=="money" && state.list.length && !state.checked){
+    iq.classList.remove("hide");
+  }else iq.classList.add("hide");
+
   $("#btnAdd").textContent = state.checked ? t("again") : (state.mode==="money" ? t("check") : t("add"));
   $("#btnAdd").className   = state.checked ? "bigbtn blue" : "bigbtn";
   $("#abNum").textContent  = totalPicked;
@@ -919,6 +930,7 @@ function renderAll(){
    ======================================================= */
 function required(){ const n={}; state.list.forEach(l=>n[l.itemId]=(n[l.itemId]||0)+l.qty); return n; }
 function billTotal(){ const n=required(); return Object.keys(n).reduce((s,id)=>{ const it=item(id); return s + (it? it.price*n[id] : 0); },0); }
+function totalListQty(){ return state.list.reduce((s,l)=>s+l.qty,0); }
 
 function check(){
   const need=required(), per={};
@@ -959,6 +971,20 @@ function onAddToCart(){
     mf.className = "fb";
     state.moneyAnswer = answer;
     state.moneyCorrect = true;
+  }else{
+    const v=$("#itemsIn").value.trim();
+    const answer = v==="" ? null : parseInt(v,10);
+    const correct = answer!==null && answer===totalListQty();
+    const fb=$("#itemsFb");
+    if(!correct){
+      fb.textContent = answer===null ? "Work out the total number of items first!" : "Not quite — add up the list again and try once more.";
+      fb.className = "fb bad";
+      $("#itemsIn").focus();
+      sBad();
+      return;
+    }
+    fb.textContent = "";
+    fb.className = "fb";
   }
 
   state.attempts++;
@@ -983,6 +1009,8 @@ function softReset(){
   state.moneyAnswer=null; state.moneyCorrect=null;
   const mi=$("#moneyIn"); if(mi) mi.value="";
   const mf=$("#moneyFb"); if(mf){ mf.textContent=""; mf.className="fb"; }
+  const ii=$("#itemsIn"); if(ii) ii.value="";
+  const ifb=$("#itemsFb"); if(ifb){ ifb.textContent=""; ifb.className="fb"; }
   listHidden=false; clearTimeout(hideTimer);
   renderShop(); renderList(); renderCart();
 }
@@ -1427,6 +1455,7 @@ $("#btnExport").onclick=exportSetup;
 $("#btnImport").onclick=importSetup;
 $("#btnDownload").onclick=downloadSetup;
 $("#moneyIn").addEventListener("keydown",e=>{ if(e.key==="Enter") onAddToCart(); });
+$("#itemsIn").addEventListener("keydown",e=>{ if(e.key==="Enter") onAddToCart(); });
 bindSettings();
 
 /* =======================================================
