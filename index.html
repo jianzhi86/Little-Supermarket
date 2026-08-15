@@ -943,16 +943,30 @@ function onAddToCart(){
   if(!state.list.length){ sBad(); return; }
   if(state.checked){ retry(); return; }
 
+  if(state.mode==="money"){
+    const v=$("#moneyIn").value.trim();
+    const answer = v==="" ? null : parseFloat(v);
+    const correct = answer!==null && Math.abs(answer-billTotal())<0.005;
+    const mf=$("#moneyFb");
+    if(!correct){
+      mf.textContent = answer===null ? "Work out the total first!" : "Not quite — check your total and try again.";
+      mf.className = "fb bad";
+      $("#moneyIn").focus();
+      sBad();
+      return;
+    }
+    mf.textContent = "";
+    mf.className = "fb";
+    state.moneyAnswer = answer;
+    state.moneyCorrect = true;
+  }
+
   state.attempts++;
   flyToCart();
   setTimeout(()=>{
     state.checked=true;
     state.result=state.settings.check ? check() : null;
-    if(state.mode==="money"){
-      const v=$("#moneyIn").value.trim();
-      state.moneyAnswer = v==="" ? null : parseFloat(v);
-      state.moneyCorrect = state.moneyAnswer!==null && Math.abs(state.moneyAnswer-billTotal())<0.005;
-    }else{ state.moneyAnswer=null; state.moneyCorrect=null; }
+    if(state.mode!=="money"){ state.moneyAnswer=null; state.moneyCorrect=null; }
     $("#cartBox").classList.add("flash");
     setTimeout(()=>$("#cartBox").classList.remove("flash"),460);
     renderList(); renderCart();
