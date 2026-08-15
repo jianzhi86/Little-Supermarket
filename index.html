@@ -214,6 +214,11 @@ button{font-family:inherit;cursor:pointer;border:none}
 }
 .moneyq .fb{font-size:14px;font-weight:800;margin-top:6px;min-height:18px}
 .moneyq .fb.ok{color:var(--green-d)} .moneyq .fb.bad{color:#d64545}
+.checkbtn{margin-top:8px;background:linear-gradient(180deg,#7cc6f5,var(--blue));color:#fff;border-radius:11px;
+  padding:8px 16px;font-weight:800;font-size:14px;box-shadow:0 3px 0 var(--blue-d)}
+.checkbtn:active{transform:translateY(3px);box-shadow:0 0 0 var(--blue-d)}
+.checkbtn:disabled{opacity:.5;pointer-events:none}
+.shop.locked{opacity:.45;filter:grayscale(.6);pointer-events:none;position:relative}
 
 /* notes */
 .notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:14px}
@@ -422,7 +427,7 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
   <div class="subtitle" id="subtitle">Let's go shopping! Read the list and buy the items.</div>
 
   <div class="board">
-    <div class="panel shop">
+    <div class="panel shop" id="shopPanel">
       <span class="shop-hint" id="shopHint">Pick the items you want to buy.</span>
       <div id="shop"></div>
     </div>
@@ -447,6 +452,7 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
         <div class="moneyq hide" id="itemsQ">
           <div class="q">How many items in total?</div>
           <div class="inrow"><input type="number" id="itemsIn" step="1" min="0" placeholder="0"></div>
+          <button class="checkbtn" id="btnCheckItems">✅ Check</button>
           <div class="fb" id="itemsFb"></div>
         </div>
 
@@ -934,16 +940,32 @@ function renderAll(){
 function required(){ const n={}; state.list.forEach(l=>n[l.itemId]=(n[l.itemId]||0)+l.qty); return n; }
 function billTotal(){ const n=required(); return Object.keys(n).reduce((s,id)=>{ const it=item(id); return s + (it? it.price*n[id] : 0); },0); }
 function totalListQty(){ return state.list.reduce((s,l)=>s+l.qty,0); }
+function shopShouldBeLocked(){
+  return state.mode!=="money" && state.list.length>0 && !state.checked && !state.itemsUnlocked;
+}
 function updateItemsLock(){
-  const needsCheck = state.mode!=="money" && state.list.length>0 && !state.checked;
-  let locked=false;
-  if(needsCheck){
-    const v=$("#itemsIn").value.trim();
-    const answer = v==="" ? null : Math.round(Number(v));
-    locked = !(answer!==null && !isNaN(answer) && answer===totalListQty());
-  }
+  const locked = shopShouldBeLocked();
   $("#btnAdd").disabled = locked;
   $("#abAdd").disabled = locked;
+  const sp=$("#shopPanel"); if(sp) sp.classList.toggle("locked", locked);
+}
+function checkItemsAnswer(){
+  const v=$("#itemsIn").value.trim();
+  const answer = v==="" ? null : Math.round(Number(v));
+  const correct = answer!==null && !isNaN(answer) && answer===totalListQty();
+  const fb=$("#itemsFb");
+  if(!correct){
+    fb.textContent = answer===null ? "Work out the total number of items first!" : "❌ Not correct — please try again.";
+    fb.className = "fb bad";
+    $("#itemsIn").focus();
+    sBad();
+  }else{
+    fb.textContent = "✅ Correct! Now pick your items.";
+    fb.className = "fb ok";
+    state.itemsUnlocked = true;
+    sGood();
+  }
+  updateItemsLock();
 }
 
 function check(){
@@ -985,20 +1007,12 @@ function onAddToCart(){
     mf.className = "fb";
     state.moneyAnswer = answer;
     state.moneyCorrect = true;
-  }else{
-    const v=$("#itemsIn").value.trim();
-    const answer = v==="" ? null : Math.round(Number(v));
-    const correct = answer!==null && !isNaN(answer) && answer===totalListQty();
-    const fb=$("#itemsFb");
-    if(!correct){
-      fb.textContent = answer===null ? "Work out the total number of items first!" : "❌ Not correct — please try again.";
-      fb.className = "fb bad";
-      $("#itemsIn").focus();
-      sBad();
-      return;
-    }
-    fb.textContent = "✅ Correct!";
-    fb.className = "fb ok";
+  }else if(!state.itemsUnlocked){
+    $("#itemsFb").textContent = "Work out the total number of items and press Check first!";
+    $("#itemsFb").className = "fb bad";
+    $("#itemsIn").focus();
+    sBad();
+    return;
   }
 
   state.attempts++;
@@ -1021,6 +1035,7 @@ function retry(){
 function softReset(){
   state.picks={}; state.checked=false; state.result=null;
   state.moneyAnswer=null; state.moneyCorrect=null;
+  state.itemsUnlocked=false;
   const mi=$("#moneyIn"); if(mi) mi.value="";
   const mf=$("#moneyFb"); if(mf){ mf.textContent=""; mf.className="fb"; }
   const ii=$("#itemsIn"); if(ii) ii.value="";
@@ -1469,8 +1484,8 @@ $("#btnExport").onclick=exportSetup;
 $("#btnImport").onclick=importSetup;
 $("#btnDownload").onclick=downloadSetup;
 $("#moneyIn").addEventListener("keydown",e=>{ if(e.key==="Enter") onAddToCart(); });
-$("#itemsIn").addEventListener("keydown",e=>{ if(e.key==="Enter") onAddToCart(); });
-$("#itemsIn").addEventListener("input",updateItemsLock);
+$("#itemsIn").addEventListener("keydown",e=>{ if(e.key==="Enter") checkItemsAnswer(); });
+$("#btnCheckItems").onclick = checkItemsAnswer;
 bindSettings();
 
 /* =======================================================
