@@ -201,6 +201,7 @@ button{font-family:inherit;cursor:pointer;border:none}
 }
 .bigbtn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--orange-d)}
 .bigbtn.blue{background:linear-gradient(180deg,#7cc6f5,var(--blue));box-shadow:0 5px 0 var(--blue-d)}
+.bigbtn:disabled,.ab-add:disabled{opacity:.45;filter:grayscale(.4);pointer-events:none;box-shadow:none}
 
 /* money question */
 .moneyq{margin-top:11px;background:#fffbe9;border:3px solid var(--yellow);border-radius:15px;padding:10px;text-align:center}
@@ -895,6 +896,8 @@ function renderCart(){
     iq.classList.remove("hide");
   }else iq.classList.add("hide");
 
+  updateItemsLock();
+
   $("#btnAdd").textContent = state.checked ? t("again") : (state.mode==="money" ? t("check") : t("add"));
   $("#btnAdd").className   = state.checked ? "bigbtn blue" : "bigbtn";
   $("#abNum").textContent  = totalPicked;
@@ -931,6 +934,17 @@ function renderAll(){
 function required(){ const n={}; state.list.forEach(l=>n[l.itemId]=(n[l.itemId]||0)+l.qty); return n; }
 function billTotal(){ const n=required(); return Object.keys(n).reduce((s,id)=>{ const it=item(id); return s + (it? it.price*n[id] : 0); },0); }
 function totalListQty(){ return state.list.reduce((s,l)=>s+l.qty,0); }
+function updateItemsLock(){
+  const needsCheck = state.mode!=="money" && state.list.length>0 && !state.checked;
+  let locked=false;
+  if(needsCheck){
+    const v=$("#itemsIn").value.trim();
+    const answer = v==="" ? null : Math.round(Number(v));
+    locked = !(answer!==null && !isNaN(answer) && answer===totalListQty());
+  }
+  $("#btnAdd").disabled = locked;
+  $("#abAdd").disabled = locked;
+}
 
 function check(){
   const need=required(), per={};
@@ -1456,6 +1470,7 @@ $("#btnImport").onclick=importSetup;
 $("#btnDownload").onclick=downloadSetup;
 $("#moneyIn").addEventListener("keydown",e=>{ if(e.key==="Enter") onAddToCart(); });
 $("#itemsIn").addEventListener("keydown",e=>{ if(e.key==="Enter") onAddToCart(); });
+$("#itemsIn").addEventListener("input",updateItemsLock);
 bindSettings();
 
 /* =======================================================
