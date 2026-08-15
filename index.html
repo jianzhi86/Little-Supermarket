@@ -374,7 +374,8 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
     <p class="tagline">Read the list · Count the items · Fill your cart!</p>
 
     <div class="hlabel">Who is playing?</div>
-    <input class="namebox" id="hName" type="text" placeholder="Type your name (optional)" maxlength="24">
+    <input class="namebox" id="hName" type="text" placeholder="Type your name" maxlength="24">
+    <div class="err" id="hNameErr" style="min-height:18px"></div>
 
     <div class="hlabel">Choose a game</div>
     <div class="tiles" id="modeTiles">
@@ -773,7 +774,15 @@ function showGame(){
   window.scrollTo(0,0);
 }
 function startGame(){
-  state.player = $("#hName").value.trim();
+  const name = $("#hName").value.trim();
+  if(!name){
+    $("#hNameErr").textContent = "Please type your name to start!";
+    $("#hName").focus();
+    sBad();
+    return;
+  }
+  $("#hNameErr").textContent = "";
+  state.player = name;
   if(state.level === "teacher"){
     if(!state.list.length) generateFromLevel("medium");
   }else generateFromLevel(state.level);
@@ -1413,6 +1422,7 @@ $$("#levelBtns .lvl").forEach(b=>b.onclick=()=>{
   state.level=b.dataset.lvl; sClick();
 });
 $("#btnStart").onclick        = startGame;
+$("#hName").addEventListener("keydown",e=>{ if(e.key==="Enter") startGame(); });
 $("#btnTeacherHome").onclick  = ()=>openPanel("build");
 $("#btnClassHome").onclick    = ()=>openPanel("class");
 $("#btnSoundHome").onclick    = ()=>{ state.settings.sound=!state.settings.sound; updateSoundIcon(); sClick(); };
