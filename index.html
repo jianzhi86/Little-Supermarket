@@ -410,7 +410,13 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
       <button class="lvl on" data-lvl="easy">😀 Easy<small>numbers 1–5 · 4 things</small></button>
       <button class="lvl" data-lvl="medium">🙂 Medium<small>numbers 1–10 · 6 things</small></button>
       <button class="lvl" data-lvl="hard">😎 Hard<small>numbers 5–20 · 8 things</small></button>
-      <button class="lvl" data-lvl="teacher">👩‍🏫 Teacher's list<small>use the saved list</small></button>
+      <button class="lvl" data-lvl="teacher">👩‍🏫 Teacher's list<small>use a published list</small></button>
+    </div>
+
+    <div class="hide" id="teacherListPick" style="margin-top:10px">
+      <div class="hlabel">Which list?</div>
+      <select id="teacherListSelect" style="font-size:15px;padding:8px 10px;border:2px solid var(--line);border-radius:10px;color:var(--ink);background:var(--card);width:min(320px,100%)"></select>
+      <div class="mini" id="teacherListMsg"></div>
     </div>
 
     <button class="startbtn" id="btnStart">▶ Start Shopping</button>
@@ -549,7 +555,8 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
           </div>
           <div class="mini">“Split a line” turns e.g. <b>27 apples</b> into <b>20 apples</b> + <b>7 apples</b> — good for addition practice.</div>
           <hr class="sep">
-          <h3 class="sec">Saved lists (this session)</h3>
+          <h3 class="sec">Saved lists</h3>
+          <div class="mini" style="margin-bottom:6px">Save a list here, then tap 🌐 to publish it so students can pick it under "Teacher's list" on any device.</div>
           <div class="row">
             <input type="text" id="saveName" placeholder="e.g. Monday P1" style="width:190px">
             <button class="btn" id="btnSaveList">💾 Save current list</button>
@@ -642,6 +649,15 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
             <label class="f">Words on screen<select id="sLang"><option value="en">English</option><option value="ms">Bahasa Melayu</option></select></label>
           </div>
           <hr class="sep">
+          <h3 class="sec">Levels students can choose</h3>
+          <div class="mini" style="margin-bottom:6px">Untick a level to hide it from the home screen. Students will only see the levels left ticked.</div>
+          <div class="row">
+            <label class="chk"><input type="checkbox" id="sShowEasy" checked> 😀 Easy</label>
+            <label class="chk"><input type="checkbox" id="sShowMedium" checked> 🙂 Medium</label>
+            <label class="chk"><input type="checkbox" id="sShowHard" checked> 😎 Hard</label>
+            <label class="chk"><input type="checkbox" id="sShowTeacher" checked> 👩‍🏫 Teacher's list</label>
+          </div>
+          <hr class="sep">
           <h3 class="sec">Teacher PIN</h3>
           <div class="row">
             <label class="f">New PIN<input type="text" id="sPin" style="width:120px" maxlength="8"></label>
@@ -693,6 +709,33 @@ async function fetchCloudLog(){
     headers:{ "apikey":SUPABASE_ANON_KEY, "Authorization":"Bearer "+SUPABASE_ANON_KEY }
   });
   if(!res.ok) throw new Error("cloud log fetch failed");
+  return res.json();
+}
+async function publishListToCloud(name, items){
+  const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_saved_lists?on_conflict=name", {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "apikey":SUPABASE_ANON_KEY,
+      "Authorization":"Bearer "+SUPABASE_ANON_KEY,
+      "Prefer":"resolution=merge-duplicates,return=minimal"
+    },
+    body: JSON.stringify({ name, items, updated_at: new Date().toISOString() })
+  });
+  if(!res.ok) throw new Error("publish failed");
+}
+async function unpublishListFromCloud(name){
+  const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_saved_lists?name=eq."+encodeURIComponent(name), {
+    method:"DELETE",
+    headers:{ "apikey":SUPABASE_ANON_KEY, "Authorization":"Bearer "+SUPABASE_ANON_KEY }
+  });
+  if(!res.ok) throw new Error("unpublish failed");
+}
+async function fetchPublishedLists(){
+  const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_saved_lists?select=name,items,updated_at&order=name.asc", {
+    headers:{ "apikey":SUPABASE_ANON_KEY, "Authorization":"Bearer "+SUPABASE_ANON_KEY }
+  });
+  if(!res.ok) throw new Error("cloud list fetch failed");
   return res.json();
 }
 
@@ -748,7 +791,8 @@ const state = {
   levels:{ easy:{min:1,max:5,count:4}, medium:{min:1,max:10,count:6}, hard:{min:5,max:20,count:8} },
   moneyAnswer:null, moneyCorrect:null,
   settings:{ pin:"0110", sound:true, speak:true, check:true, showMistakes:true,
-             hideList:false, showPrices:true, easySums:true, currency:"RM", lang:"en" }
+             hideList:false, showPrices:true, easySums:true, currency:"RM", lang:"en",
+             showEasy:true, showMedium:true, showHard:true, showTeacherLevel:true }
 };
 
 const T = {
@@ -807,16 +851,48 @@ function say(txt){
 /* =======================================================
    SCREENS
    ======================================================= */
+function renderLevelVisibility(){
+  const vis={easy:state.settings.showEasy, medium:state.settings.showMedium, hard:state.settings.showHard, teacher:state.settings.showTeacherLevel};
+  $$("#levelBtns .lvl").forEach(b=>b.classList.toggle("hide", !vis[b.dataset.lvl]));
+  if(!vis[state.level]){
+    const firstVisible=$$("#levelBtns .lvl").find(b=>!b.classList.contains("hide"));
+    if(firstVisible){
+      $$("#levelBtns .lvl").forEach(x=>x.classList.remove("on"));
+      firstVisible.classList.add("on");
+      state.level=firstVisible.dataset.lvl;
+    }
+  }
+}
 function showHome(){
   $("#screenHome").classList.remove("hide");
   $("#screenGame").classList.add("hide");
   $("#resultOverlay").classList.remove("show");
+  renderLevelVisibility();
   if(window.speechSynthesis) try{speechSynthesis.cancel()}catch(e){}
 }
 function showGame(){
   $("#screenHome").classList.add("hide");
   $("#screenGame").classList.remove("hide");
   window.scrollTo(0,0);
+}
+let publishedLists = [];
+async function loadTeacherListPicker(){
+  const sel=$("#teacherListSelect");
+  sel.innerHTML='<option value="">Loading…</option>';
+  $("#teacherListMsg").textContent="";
+  try{
+    publishedLists = await fetchPublishedLists();
+    if(!publishedLists.length){
+      sel.innerHTML='<option value="">No published lists yet</option>';
+      $("#teacherListMsg").textContent="Ask your teacher to publish a list first.";
+      return;
+    }
+    sel.innerHTML = publishedLists.map((l,i)=>'<option value="'+i+'">'+esc(l.name)+'</option>').join("");
+  }catch(e){
+    publishedLists=[];
+    sel.innerHTML='<option value="">Could not load lists</option>';
+    $("#teacherListMsg").textContent="Could not reach the server — try again.";
+  }
 }
 function startGame(){
   const name = $("#hName").value.trim();
@@ -829,7 +905,14 @@ function startGame(){
   $("#hNameErr").textContent = "";
   state.player = name;
   if(state.level === "teacher"){
-    if(!state.list.length) generateFromLevel("medium");
+    const idx = parseInt($("#teacherListSelect").value,10);
+    const chosen = publishedLists[idx];
+    if(!chosen){
+      $("#teacherListMsg").textContent = "Please choose a published list first.";
+      sBad();
+      return;
+    }
+    state.list = chosen.items.map(o=>({...o}));
   }else generateFromLevel(state.level);
   state.round++;
   state.attempts = 0;
@@ -1387,11 +1470,16 @@ function syncSettingsUI(){
   $("#sLang").value=state.settings.lang;
   $("#sPin").value=state.settings.pin;
   $("#sCurrency").value=state.settings.currency;
+  $("#sShowEasy").checked=state.settings.showEasy;
+  $("#sShowMedium").checked=state.settings.showMedium;
+  $("#sShowHard").checked=state.settings.showHard;
+  $("#sShowTeacher").checked=state.settings.showTeacherLevel;
 }
 function bindSettings(){
-  const map={sCheck:"check",sShowMistakes:"showMistakes",sSound:"sound",sSpeak:"speak",sHideList:"hideList",sShowPrices:"showPrices",sEasySums:"easySums"};
+  const map={sCheck:"check",sShowMistakes:"showMistakes",sSound:"sound",sSpeak:"speak",sHideList:"hideList",sShowPrices:"showPrices",sEasySums:"easySums",
+             sShowEasy:"showEasy",sShowMedium:"showMedium",sShowHard:"showHard",sShowTeacher:"showTeacherLevel"};
   Object.keys(map).forEach(k=>{
-    $("#"+k).onchange=e=>{ state.settings[map[k]]=e.target.checked; renderAll(); };
+    $("#"+k).onchange=e=>{ state.settings[map[k]]=e.target.checked; renderAll(); renderLevelVisibility(); };
   });
   $("#sLang").onchange=e=>{ state.settings.lang=e.target.value; renderAll(); };
   $("#sCurrency").onchange=e=>{ state.settings.currency=e.target.value.trim()||"RM"; renderAll(); };
@@ -1408,9 +1496,15 @@ function renderSaved(){
   if(!keys.length){ w.innerHTML='<span class="mini">Nothing saved yet.</span>'; return; }
   keys.forEach(k=>{
     const s=document.createElement("span"); s.className="s";
-    s.innerHTML='<b>'+esc(k)+'</b> <button title="Load">▶</button> <button title="Delete">✕</button>';
-    const [load,del]=s.querySelectorAll("button");
+    s.innerHTML='<b>'+esc(k)+'</b> <button title="Load">▶</button> <button title="Publish for students">🌐</button> <button title="Delete">✕</button>';
+    const [load,pub,del]=s.querySelectorAll("button");
     load.onclick=()=>{ state.list=state.saved[k].map(o=>({...o})); softReset(); renderListEdit(); renderBuildGrid(); };
+    pub.onclick=()=>{
+      pub.textContent="…";
+      publishListToCloud(k, state.saved[k]).then(()=>{
+        pub.textContent="✅"; setTimeout(()=>{ pub.textContent="🌐"; },1500);
+      }).catch(()=>{ pub.textContent="⚠️"; setTimeout(()=>{ pub.textContent="🌐"; },1500); });
+    };
     del.onclick=()=>{ delete state.saved[k]; renderSaved(); };
     w.appendChild(s);
   });
@@ -1505,6 +1599,8 @@ $$("#modeTiles .tile").forEach(b=>b.onclick=()=>{
 $$("#levelBtns .lvl").forEach(b=>b.onclick=()=>{
   $$("#levelBtns .lvl").forEach(x=>x.classList.remove("on")); b.classList.add("on");
   state.level=b.dataset.lvl; sClick();
+  $("#teacherListPick").classList.toggle("hide", state.level!=="teacher");
+  if(state.level==="teacher") loadTeacherListPicker();
 });
 $("#btnStart").onclick        = startGame;
 $("#hName").addEventListener("keydown",e=>{ if(e.key==="Enter") startGame(); });
