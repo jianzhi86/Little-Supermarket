@@ -562,6 +562,11 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
             <button class="btn" id="btnSaveList">💾 Save current list</button>
           </div>
           <div class="saved" id="savedWrap"></div>
+
+          <hr class="sep">
+          <h3 class="sec">Published lists — pick what students can see</h3>
+          <div class="mini" style="margin-bottom:6px">Untick a list to hide it from students without deleting it. Only ticked lists appear in the student's dropdown.</div>
+          <div id="publishedWrap"><span class="mini">Loading…</span></div>
         </div>
 
         <!-- RANDOM -->
@@ -732,11 +737,31 @@ async function unpublishListFromCloud(name){
   if(!res.ok) throw new Error("unpublish failed");
 }
 async function fetchPublishedLists(){
-  const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_saved_lists?select=name,items,updated_at&order=name.asc", {
+  const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_saved_lists?select=name,items,updated_at&visible=eq.true&order=name.asc", {
     headers:{ "apikey":SUPABASE_ANON_KEY, "Authorization":"Bearer "+SUPABASE_ANON_KEY }
   });
   if(!res.ok) throw new Error("cloud list fetch failed");
   return res.json();
+}
+async function fetchAllCloudLists(){
+  const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_saved_lists?select=name,visible,updated_at&order=name.asc", {
+    headers:{ "apikey":SUPABASE_ANON_KEY, "Authorization":"Bearer "+SUPABASE_ANON_KEY }
+  });
+  if(!res.ok) throw new Error("cloud list fetch failed");
+  return res.json();
+}
+async function setListVisibility(name, visible){
+  const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_saved_lists?name=eq."+encodeURIComponent(name), {
+    method:"PATCH",
+    headers:{
+      "Content-Type":"application/json",
+      "apikey":SUPABASE_ANON_KEY,
+      "Authorization":"Bearer "+SUPABASE_ANON_KEY,
+      "Prefer":"return=minimal"
+    },
+    body: JSON.stringify({ visible })
+  });
+  if(!res.ok) throw new Error("visibility update failed");
 }
 
 /* =======================================================
@@ -1340,7 +1365,30 @@ function gotoTab(name){
   const el=$("#pane-"+name); if(el) el.classList.add("on");
   if(name==="class") refreshCloudLog();
 }
-function buildAdmin(){ renderBuildGrid(); renderListEdit(); renderRandomCats(); renderItemsAdmin(); renderEmojiGrid(); renderSaved(); renderLog(); syncSettingsUI(); }
+function buildAdmin(){ renderBuildGrid(); renderListEdit(); renderRandomCats(); renderItemsAdmin(); renderEmojiGrid(); renderSaved(); renderPublishedLists(); renderLog(); syncSettingsUI(); }
+function renderPublishedLists(){
+  const w=$("#publishedWrap");
+  w.innerHTML='<span class="mini">Loading…</span>';
+  fetchAllCloudLists().then(rows=>{
+    if(!rows.length){ w.innerHTML='<span class="mini">Nothing published yet.</span>'; return; }
+    w.innerHTML="";
+    rows.forEach(r=>{
+      const row=document.createElement("label");
+      row.className="chk"; row.style.display="flex"; row.style.alignItems="center"; row.style.gap="8px"; row.style.margin="4px 0";
+      row.innerHTML='<input type="checkbox" '+(r.visible?"checked":"")+'> <b>'+esc(r.name)+'</b> <button type="button" title="Delete" style="margin-left:auto;background:none;color:#d64545;font-weight:800">✕</button>';
+      const cb=row.querySelector("input"), del=row.querySelector("button");
+      cb.onchange=()=>{
+        cb.disabled=true;
+        setListVisibility(r.name, cb.checked).catch(()=>{ cb.checked=!cb.checked; }).finally(()=>{ cb.disabled=false; });
+      };
+      del.onclick=()=>{
+        del.disabled=true;
+        unpublishListFromCloud(r.name).then(()=>renderPublishedLists()).catch(()=>{ del.disabled=false; });
+      };
+      w.appendChild(row);
+    });
+  }).catch(()=>{ w.innerHTML='<span class="mini" style="color:#d64545">Could not load published lists.</span>'; });
+}
 
 let buildDraft={};
 function renderBuildGrid(){
@@ -1503,6 +1551,7 @@ function renderSaved(){
       pub.textContent="…";
       publishListToCloud(k, state.saved[k]).then(()=>{
         pub.textContent="✅"; setTimeout(()=>{ pub.textContent="🌐"; },1500);
+        renderPublishedLists();
       }).catch(()=>{ pub.textContent="⚠️"; setTimeout(()=>{ pub.textContent="🌐"; },1500); });
     };
     del.onclick=()=>{ delete state.saved[k]; renderSaved(); };
