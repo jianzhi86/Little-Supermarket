@@ -1397,7 +1397,10 @@ function openPanel(tab){
   openPanel.wanted = tab || "build";
   setTimeout(()=>$("#pinInput").focus(),60);
 }
-function closePanel(){ $("#overlay").classList.remove("show"); document.body.style.overflow=""; }
+function closePanel(){
+  $("#overlay").classList.remove("show"); document.body.style.overflow="";
+  if(!$("#screenHome").classList.contains("hide")){ renderLevelVisibility(); renderPublishedTiles(); }
+}
 function tryPin(){
   if($("#pinInput").value.trim()===state.settings.pin){
     $("#pinGate").style.display="none"; $("#panelBody").style.display="flex";
