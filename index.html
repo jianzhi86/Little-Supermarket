@@ -54,11 +54,11 @@ button{font-family:inherit;cursor:pointer;border:none}
 .hide{display:none !important}
 
 /* ===================== HOME SCREEN ===================== */
-#screenHome{min-height:100vh;display:grid;place-items:center;padding:18px;position:relative;overflow:hidden}
+#screenHome{min-height:100vh;padding:40px 18px;position:relative;overflow-x:hidden}
 .floaty{position:absolute;font-size:40px;opacity:.35;animation:bob 6s ease-in-out infinite;pointer-events:none;user-select:none}
 @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-22px) rotate(8deg)}}
 .homecard{
-  width:min(880px,100%);background:var(--card);border-radius:30px;padding:22px 26px 26px;text-align:center;
+  width:min(880px,100%);margin:0 auto;background:var(--card);border-radius:30px;padding:22px 26px 26px;text-align:center;
   box-shadow:0 18px 50px rgba(40,70,110,.22);border:5px solid #ffdf9a;position:relative;z-index:2
 }
 .bigtitle{font-size:clamp(30px,6vw,62px);font-weight:800;line-height:1.05;margin:4px 0 2px}
