@@ -444,12 +444,7 @@ html[data-theme="dark"] .pinbox p,html[data-theme="dark"] label.f,html[data-them
     </div>
 
     <div class="hlabel">Choose a level</div>
-    <div class="levels" id="levelBtns">
-      <button class="lvl on" data-lvl="easy">😀 Easy<small>numbers 1–5 · 4 things</small></button>
-      <button class="lvl" data-lvl="medium">🙂 Medium<small>numbers 1–10 · 6 things</small></button>
-      <button class="lvl" data-lvl="hard">😎 Hard<small>numbers 5–20 · 8 things</small></button>
-    </div>
-    <div class="levels" id="pubListBtns" style="margin-top:8px"></div>
+    <div class="levels" id="pubListBtns"></div>
     <div class="mini" id="teacherListMsg"></div>
 
     <button class="startbtn" id="btnStart">▶ Start Shopping</button>
@@ -589,7 +584,7 @@ html[data-theme="dark"] .pinbox p,html[data-theme="dark"] label.f,html[data-them
           <div class="mini">“Split a line” turns e.g. <b>27 apples</b> into <b>20 apples</b> + <b>7 apples</b> — good for addition practice.</div>
           <hr class="sep">
           <h3 class="sec">Saved lists</h3>
-          <div class="mini" style="margin-bottom:6px">Save a list here first. Tap 🌐 on one to publish it as its own tile, or bundle several into a lesson below.</div>
+          <div class="mini" style="margin-bottom:6px">Save a list here first. Tap 🌐 on one to publish it as its own level, or bundle several into a level below.</div>
           <div class="row">
             <input type="text" id="saveName" placeholder="e.g. Monday P1" style="width:190px">
             <button class="btn" id="btnSaveList">💾 Save current list</button>
@@ -597,18 +592,18 @@ html[data-theme="dark"] .pinbox p,html[data-theme="dark"] label.f,html[data-them
           <div class="saved" id="savedWrap"></div>
 
           <hr class="sep">
-          <h3 class="sec">Bundle saved lists into a lesson</h3>
-          <div class="mini" style="margin-bottom:6px">Tick the saved lists to include, name the lesson, then publish. Each time a student plays it, one of the ticked lists is picked for them.</div>
+          <h3 class="sec">Bundle saved lists into a level</h3>
+          <div class="mini" style="margin-bottom:6px">Tick the saved lists to include, name the level, then publish. Each time a student plays it, one of the ticked lists is picked for them — bundle up to 9–10 for variety.</div>
           <div id="lessonPickWrap" class="row" style="margin-bottom:8px"></div>
           <div class="row">
-            <input type="text" id="lessonName" placeholder="e.g. Monday lesson" style="width:190px">
-            <button class="btn o" id="btnPublishLesson">🌐 Publish lesson</button>
+            <input type="text" id="lessonName" placeholder="e.g. Monday level" style="width:190px">
+            <button class="btn o" id="btnPublishLesson">🌐 Publish level</button>
             <span class="mini" id="lessonMsg"></span>
           </div>
 
           <hr class="sep">
-          <h3 class="sec">Published lists — pick what students can see</h3>
-          <div class="mini" style="margin-bottom:6px">Untick a list to hide it from students without deleting it. Only ticked lists appear in the student's dropdown.</div>
+          <h3 class="sec">Published levels — pick what students can see</h3>
+          <div class="mini" style="margin-bottom:6px">Untick a level to hide it from students without deleting it. Only ticked levels appear on the student's Home screen.</div>
           <div id="publishedWrap"><span class="mini">Loading…</span></div>
         </div>
 
@@ -698,13 +693,8 @@ html[data-theme="dark"] .pinbox p,html[data-theme="dark"] label.f,html[data-them
           </div>
           <hr class="sep">
           <h3 class="sec">Levels students can choose</h3>
-          <div class="mini" style="margin-bottom:6px">Untick a level to hide it from the home screen. Students will only see the levels left ticked.</div>
-          <div class="row">
-            <label class="chk"><input type="checkbox" id="sShowEasy" checked> 😀 Easy</label>
-            <label class="chk"><input type="checkbox" id="sShowMedium" checked> 🙂 Medium</label>
-            <label class="chk"><input type="checkbox" id="sShowHard" checked> 😎 Hard</label>
-          </div>
-          <div class="mini">To control published lists, go to 📝 Build List → "Published lists".</div>
+          <div class="mini" style="margin-bottom:6px">Untick a level to hide it from the home screen. Build new levels in 📝 Build List → "Bundle saved lists into a level".</div>
+          <div id="settingsLevelsWrap"><span class="mini">Loading…</span></div>
           <hr class="sep">
           <h3 class="sec">Teacher PIN</h3>
           <div class="row">
@@ -856,12 +846,11 @@ const state = {
   items: DEFAULT_ITEMS.map(o=>({...o})),
   list: [], picks: {}, checked:false, result:null,
   saved:{}, log:[], round:0, attempts:0,
-  player:"", mode:"shop", level:"easy",
+  player:"", mode:"shop", level:null,
   levels:{ easy:{min:1,max:5,count:4}, medium:{min:1,max:10,count:6}, hard:{min:5,max:20,count:8} },
   moneyAnswer:null, moneyCorrect:null,
   settings:{ pin:"0110", sound:true, speak:true, check:true, showMistakes:true,
-             hideList:false, showPrices:true, easySums:true, currency:"RM", lang:"en",
-             showEasy:true, showMedium:true, showHard:true }
+             hideList:false, showPrices:true, easySums:true, currency:"RM", lang:"en" }
 };
 
 const T = {
@@ -920,32 +909,23 @@ function say(txt){
 /* =======================================================
    SCREENS
    ======================================================= */
-function renderLevelVisibility(){
-  const vis={easy:state.settings.showEasy, medium:state.settings.showMedium, hard:state.settings.showHard};
-  $$("#levelBtns .lvl").forEach(b=>b.classList.toggle("hide", !vis[b.dataset.lvl]));
-  if(vis.hasOwnProperty(state.level) && !vis[state.level]){
-    const firstVisible=$$("#levelBtns .lvl").find(b=>!b.classList.contains("hide"));
-    if(firstVisible){
-      $$("#levelBtns .lvl").forEach(x=>x.classList.remove("on"));
-      $$("#pubListBtns .lvl").forEach(x=>x.classList.remove("on"));
-      firstVisible.classList.add("on");
-      state.level=firstVisible.dataset.lvl;
-    }
-  }
-}
 function renderPublishedTiles(){
   const w=$("#pubListBtns");
   fetchPublishedLists().then(rows=>{
     publishedLists = rows;
     w.innerHTML="";
+    if(!rows.length){
+      $("#teacherListMsg").textContent = "No levels published yet. Ask your teacher to publish one!";
+      return;
+    }
+    $("#teacherListMsg").textContent = "";
     rows.forEach((l,i)=>{
       const b=document.createElement("button");
       b.className="lvl"+(state.level==="pub:"+i?" on":"");
       b.dataset.lvl="pub:"+i;
       const n=(l.lists||[]).length;
-      b.innerHTML="📋 "+esc(l.name)+"<small>"+(n>1?n+" lists · one picked for you":"teacher's list")+"</small>";
+      b.innerHTML="📋 "+esc(l.name)+"<small>"+(n>1?n+" lists · one picked for you":"1 list")+"</small>";
       b.onclick=()=>{
-        $$("#levelBtns .lvl").forEach(x=>x.classList.remove("on"));
         $$("#pubListBtns .lvl").forEach(x=>x.classList.remove("on"));
         b.classList.add("on");
         state.level="pub:"+i;
@@ -953,14 +933,12 @@ function renderPublishedTiles(){
       };
       w.appendChild(b);
     });
-    $("#teacherListMsg").textContent = rows.length ? "" : "";
-  }).catch(()=>{ w.innerHTML=""; });
+  }).catch(()=>{ w.innerHTML=""; $("#teacherListMsg").textContent="Could not load levels — try refreshing."; });
 }
 function showHome(){
   $("#screenHome").classList.remove("hide");
   $("#screenGame").classList.add("hide");
   $("#resultOverlay").classList.remove("show");
-  renderLevelVisibility();
   renderPublishedTiles();
   if(window.speechSynthesis) try{speechSynthesis.cancel()}catch(e){}
 }
@@ -978,18 +956,21 @@ function startGame(){
     return;
   }
   $("#hNameErr").textContent = "";
+  if(!(typeof state.level === "string" && state.level.startsWith("pub:"))){
+    $("#teacherListMsg").textContent = "Please choose a level first.";
+    sBad();
+    return;
+  }
+  const idx = parseInt(state.level.slice(4),10);
+  const chosen = publishedLists[idx];
+  if(!chosen){
+    $("#teacherListMsg").textContent = "Please choose a level first.";
+    sBad();
+    return;
+  }
   state.player = name;
-  if(typeof state.level === "string" && state.level.startsWith("pub:")){
-    const idx = parseInt(state.level.slice(4),10);
-    const chosen = publishedLists[idx];
-    if(!chosen){
-      $("#teacherListMsg").textContent = "Please choose a list first.";
-      sBad();
-      return;
-    }
-    const sub = chosen.lists[Math.floor(Math.random()*chosen.lists.length)] || [];
-    state.list = sub.map(o=>({...o}));
-  }else generateFromLevel(state.level);
+  const sub = chosen.lists[Math.floor(Math.random()*chosen.lists.length)] || [];
+  state.list = sub.map(o=>({...o}));
   state.round++;
   state.attempts = 0;
   softReset();
@@ -1129,9 +1110,9 @@ function renderPlayerBar(){
   add("", "Round <b>"+state.round+"</b>");
   add("mode", state.mode==="money" ? "💰 Money game" : "🛒 Shopping game");
   const lv = (typeof state.level==="string" && state.level.startsWith("pub:"))
-    ? "👩‍🏫 "+(publishedLists[parseInt(state.level.slice(4),10)]?.name||"Teacher's list")
-    : {easy:"😀 Easy",medium:"🙂 Medium",hard:"😎 Hard"}[state.level];
-  add("", lv);
+    ? "📋 "+(publishedLists[parseInt(state.level.slice(4),10)]?.name||"Level")
+    : "";
+  if(lv) add("", lv);
   if(state.log.length){
     const stars=state.log.reduce((a,r)=>a+r.stars,0);
     add("", "⭐ <b>"+stars+"</b>");
@@ -1411,7 +1392,8 @@ function openPanel(tab){
 }
 function closePanel(){
   $("#overlay").classList.remove("show"); document.body.style.overflow="";
-  if(!$("#screenHome").classList.contains("hide")){ renderLevelVisibility(); renderPublishedTiles(); }
+  if(!$("#screenHome").classList.contains("hide")){ renderPublishedTiles(); }
+  renderSettingsLevels();
 }
 function tryPin(){
   if($("#pinInput").value.trim()===state.settings.pin){
@@ -1426,9 +1408,9 @@ function gotoTab(name){
   const body=$(".tabbody"); if(body) body.scrollTop=0;
   if(name==="class") refreshCloudLog();
 }
-function buildAdmin(){ renderBuildGrid(); renderListEdit(); renderRandomCats(); renderItemsAdmin(); renderEmojiGrid(); renderSaved(); renderPublishedLists(); renderLog(); syncSettingsUI(); }
-function renderPublishedLists(){
-  const w=$("#publishedWrap");
+function buildAdmin(){ renderBuildGrid(); renderListEdit(); renderRandomCats(); renderItemsAdmin(); renderEmojiGrid(); renderSaved(); renderPublishedLists(); renderSettingsLevels(); renderLog(); syncSettingsUI(); }
+function renderLevelChecklist(wrapId, showDelete){
+  const w=$(wrapId); if(!w) return;
   w.innerHTML='<span class="mini">Loading…</span>';
   fetchAllCloudLists().then(rows=>{
     if(!rows.length){ w.innerHTML='<span class="mini">Nothing published yet.</span>'; return; }
@@ -1437,20 +1419,23 @@ function renderPublishedLists(){
       const row=document.createElement("label");
       row.className="chk"; row.style.display="flex"; row.style.alignItems="center"; row.style.gap="8px"; row.style.margin="4px 0";
       const n=(r.lists||[]).length;
-      row.innerHTML='<input type="checkbox" '+(r.visible?"checked":"")+'> <b>'+esc(r.name)+'</b> <span class="mini">('+n+' list'+(n===1?"":"s")+')</span> <button type="button" title="Delete" style="margin-left:auto;background:none;color:#d64545;font-weight:800">✕</button>';
+      row.innerHTML='<input type="checkbox" '+(r.visible?"checked":"")+'> <b>'+esc(r.name)+'</b> <span class="mini">('+n+' list'+(n===1?"":"s")+')</span>'+
+        (showDelete?' <button type="button" title="Delete" style="margin-left:auto;background:none;color:#d64545;font-weight:800">✕</button>':"");
       const cb=row.querySelector("input"), del=row.querySelector("button");
       cb.onchange=()=>{
         cb.disabled=true;
-        setListVisibility(r.name, cb.checked).catch(()=>{ cb.checked=!cb.checked; }).finally(()=>{ cb.disabled=false; });
+        setListVisibility(r.name, cb.checked).then(()=>{ renderPublishedLists(); renderSettingsLevels(); }).catch(()=>{ cb.checked=!cb.checked; }).finally(()=>{ cb.disabled=false; });
       };
-      del.onclick=()=>{
+      if(del) del.onclick=()=>{
         del.disabled=true;
-        unpublishListFromCloud(r.name).then(()=>renderPublishedLists()).catch(()=>{ del.disabled=false; });
+        unpublishListFromCloud(r.name).then(()=>{ renderPublishedLists(); renderSettingsLevels(); }).catch(()=>{ del.disabled=false; });
       };
       w.appendChild(row);
     });
   }).catch(()=>{ w.innerHTML='<span class="mini" style="color:#d64545">Could not load published lists.</span>'; });
 }
+function renderPublishedLists(){ renderLevelChecklist("#publishedWrap", true); }
+function renderSettingsLevels(){ renderLevelChecklist("#settingsLevelsWrap", false); }
 
 let buildDraft={};
 function renderBuildGrid(){
@@ -1580,16 +1565,11 @@ function syncSettingsUI(){
   $("#sLang").value=state.settings.lang;
   $("#sPin").value=state.settings.pin;
   $("#sCurrency").value=state.settings.currency;
-  $("#sShowEasy").checked=state.settings.showEasy;
-  $("#sShowMedium").checked=state.settings.showMedium;
-  $("#sShowHard").checked=state.settings.showHard;
-  $("#sShowTeacher").checked=state.settings.showTeacherLevel;
 }
 function bindSettings(){
-  const map={sCheck:"check",sShowMistakes:"showMistakes",sSound:"sound",sSpeak:"speak",sHideList:"hideList",sShowPrices:"showPrices",sEasySums:"easySums",
-             sShowEasy:"showEasy",sShowMedium:"showMedium",sShowHard:"showHard",sShowTeacher:"showTeacherLevel"};
+  const map={sCheck:"check",sShowMistakes:"showMistakes",sSound:"sound",sSpeak:"speak",sHideList:"hideList",sShowPrices:"showPrices",sEasySums:"easySums"};
   Object.keys(map).forEach(k=>{
-    $("#"+k).onchange=e=>{ state.settings[map[k]]=e.target.checked; renderAll(); renderLevelVisibility(); };
+    $("#"+k).onchange=e=>{ state.settings[map[k]]=e.target.checked; renderAll(); };
   });
   $("#sLang").onchange=e=>{ state.settings.lang=e.target.value; renderAll(); };
   $("#sCurrency").onchange=e=>{ state.settings.currency=e.target.value.trim()||"RM"; renderAll(); };
@@ -1734,12 +1714,6 @@ function initTheme(){
 $$("#modeTiles .tile").forEach(b=>b.onclick=()=>{
   $$("#modeTiles .tile").forEach(x=>x.classList.remove("on")); b.classList.add("on");
   state.mode=b.dataset.mode; sClick();
-});
-$$("#levelBtns .lvl").forEach(b=>b.onclick=()=>{
-  $$("#levelBtns .lvl").forEach(x=>x.classList.remove("on"));
-  $$("#pubListBtns .lvl").forEach(x=>x.classList.remove("on"));
-  b.classList.add("on");
-  state.level=b.dataset.lvl; sClick();
 });
 $("#btnStart").onclick        = startGame;
 $("#hName").addEventListener("keydown",e=>{ if(e.key==="Enter") startGame(); });
