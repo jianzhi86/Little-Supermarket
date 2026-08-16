@@ -537,7 +537,7 @@ html[data-theme="dark"] .pinbox p,html[data-theme="dark"] label.f,html[data-them
     <div class="rbox" id="rBox"></div>
     <div class="rbtns">
       <button class="rbtn b" id="rAgain">🔄 Try Again</button>
-      <button class="rbtn g" id="rNew">🎲 New List</button>
+      <button class="rbtn g" id="rNew">➡️ Next List</button>
       <button class="rbtn o" id="rHome">🏠 Home</button>
     </div>
   </div>
@@ -847,7 +847,7 @@ const state = {
   items: DEFAULT_ITEMS.map(o=>({...o})),
   list: [], picks: {}, checked:false, result:null,
   saved:{}, log:[], round:0, attempts:0,
-  player:"", mode:"shop", level:null,
+  player:"", mode:"shop", level:null, lessonSubs:[], lessonIndex:0,
   levels:{ easy:{min:1,max:5,count:4}, medium:{min:1,max:10,count:6}, hard:{min:5,max:20,count:8} },
   moneyAnswer:null, moneyCorrect:null,
   settings:{ pin:"0110", sound:true, speak:true, check:true, showMistakes:true,
@@ -970,7 +970,9 @@ function startGame(){
     return;
   }
   state.player = name;
-  const sub = chosen.lists[Math.floor(Math.random()*chosen.lists.length)] || [];
+  state.lessonSubs = (chosen.lists||[]).filter(l=>l && l.length>0);
+  state.lessonIndex = 0;
+  const sub = state.lessonSubs[0] || [];
   state.list = sub.map(o=>({...o}));
   state.round++;
   state.attempts = 0;
@@ -1296,7 +1298,10 @@ function showResults(){
     r.extra.forEach(m=>li(m.it.emoji+' <b>'+esc(m.it.plural)+'</b> were not on the list.'));
   }else li('Look at the list again and try once more.');
 
-  $("#rNew").classList.toggle("hide", typeof state.level==="string" && state.level.startsWith("pub:"));
+  const hasNext = state.lessonSubs.length>0 && state.lessonIndex+1 < state.lessonSubs.length;
+  $("#rNew").classList.toggle("hide", !hasNext);
+  if(hasNext) li('📋 List '+(state.lessonIndex+1)+' of '+state.lessonSubs.length+' done — press "Next List" to continue.');
+  else if(state.lessonSubs.length>1) li('🏁 That was the last list in this level ('+state.lessonSubs.length+' of '+state.lessonSubs.length+').');
   $("#resultOverlay").classList.add("show");
 
   if(allRight){ sGood(); confetti(); logRound(s,true); }
@@ -1746,9 +1751,11 @@ $$(".tab").forEach(tb=>tb.onclick=()=>gotoTab(tb.dataset.pane));
 
 $("#rAgain").onclick = retry;
 $("#rNew").onclick   = ()=>{
+  if(state.lessonIndex+1 >= state.lessonSubs.length) return;
   $("#resultOverlay").classList.remove("show");
   state.round++; state.attempts=0;
-  generateFromLevel(state.level.startsWith("pub:")?"medium":state.level);
+  state.lessonIndex++;
+  state.list = state.lessonSubs[state.lessonIndex].map(o=>({...o}));
   softReset(); renderPlayerBar(); sGood();
   if(state.settings.hideList) startHideTimer();
 };
