@@ -274,6 +274,7 @@ button{font-family:inherit;cursor:pointer;border:none}
   box-shadow:0 20px 60px rgba(0,0,0,.35);border:3px solid #d9c6ff;
   display:flex;flex-direction:column;overflow:hidden
 }
+#panelBody{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
 .modal-head{background:linear-gradient(180deg,#b18ded,var(--purple));color:#fff;padding:12px 18px;display:flex;align-items:center;gap:10px;flex:0 0 auto}
 .modal-head h2{margin:0;font-size:21px;flex:1}
 .modal-head button{background:rgba(255,255,255,.22);color:#fff;border-radius:10px;padding:7px 13px;font-weight:800}
@@ -1399,7 +1400,7 @@ function openPanel(tab){
 function closePanel(){ $("#overlay").classList.remove("show"); document.body.style.overflow=""; }
 function tryPin(){
   if($("#pinInput").value.trim()===state.settings.pin){
-    $("#pinGate").style.display="none"; $("#panelBody").style.display="block";
+    $("#pinGate").style.display="none"; $("#panelBody").style.display="flex";
     buildAdmin(); gotoTab(openPanel.wanted||"build");
   }else{ $("#pinErr").textContent="Wrong PIN — try again."; $("#pinInput").value=""; sBad(); }
 }
