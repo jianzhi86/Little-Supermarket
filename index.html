@@ -410,14 +410,9 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
       <button class="lvl on" data-lvl="easy">😀 Easy<small>numbers 1–5 · 4 things</small></button>
       <button class="lvl" data-lvl="medium">🙂 Medium<small>numbers 1–10 · 6 things</small></button>
       <button class="lvl" data-lvl="hard">😎 Hard<small>numbers 5–20 · 8 things</small></button>
-      <button class="lvl" data-lvl="teacher">👩‍🏫 Teacher's list<small>use a published list</small></button>
     </div>
-
-    <div class="hide" id="teacherListPick" style="margin-top:10px">
-      <div class="hlabel">Which list?</div>
-      <select id="teacherListSelect" style="font-size:15px;padding:8px 10px;border:2px solid var(--line);border-radius:10px;color:var(--ink);background:var(--card);width:min(320px,100%)"></select>
-      <div class="mini" id="teacherListMsg"></div>
-    </div>
+    <div class="levels" id="pubListBtns" style="margin-top:8px"></div>
+    <div class="mini" id="teacherListMsg"></div>
 
     <button class="startbtn" id="btnStart">▶ Start Shopping</button>
 
@@ -660,8 +655,8 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
             <label class="chk"><input type="checkbox" id="sShowEasy" checked> 😀 Easy</label>
             <label class="chk"><input type="checkbox" id="sShowMedium" checked> 🙂 Medium</label>
             <label class="chk"><input type="checkbox" id="sShowHard" checked> 😎 Hard</label>
-            <label class="chk"><input type="checkbox" id="sShowTeacher" checked> 👩‍🏫 Teacher's list</label>
           </div>
+          <div class="mini">To control published lists, go to 📝 Build List → "Published lists".</div>
           <hr class="sep">
           <h3 class="sec">Teacher PIN</h3>
           <div class="row">
@@ -808,6 +803,7 @@ const EMOJI_LIST = [...new Set(Array.from("🍎🍏🍐🍊🍋🍌🍉🍇🍓�
 /* =======================================================
    STATE
    ======================================================= */
+let publishedLists = [];
 const state = {
   items: DEFAULT_ITEMS.map(o=>({...o})),
   list: [], picks: {}, checked:false, result:null,
@@ -817,7 +813,7 @@ const state = {
   moneyAnswer:null, moneyCorrect:null,
   settings:{ pin:"0110", sound:true, speak:true, check:true, showMistakes:true,
              hideList:false, showPrices:true, easySums:true, currency:"RM", lang:"en",
-             showEasy:true, showMedium:true, showHard:true, showTeacherLevel:true }
+             showEasy:true, showMedium:true, showHard:true }
 };
 
 const T = {
@@ -877,47 +873,52 @@ function say(txt){
    SCREENS
    ======================================================= */
 function renderLevelVisibility(){
-  const vis={easy:state.settings.showEasy, medium:state.settings.showMedium, hard:state.settings.showHard, teacher:state.settings.showTeacherLevel};
+  const vis={easy:state.settings.showEasy, medium:state.settings.showMedium, hard:state.settings.showHard};
   $$("#levelBtns .lvl").forEach(b=>b.classList.toggle("hide", !vis[b.dataset.lvl]));
-  if(!vis[state.level]){
+  if(vis.hasOwnProperty(state.level) && !vis[state.level]){
     const firstVisible=$$("#levelBtns .lvl").find(b=>!b.classList.contains("hide"));
     if(firstVisible){
       $$("#levelBtns .lvl").forEach(x=>x.classList.remove("on"));
+      $$("#pubListBtns .lvl").forEach(x=>x.classList.remove("on"));
       firstVisible.classList.add("on");
       state.level=firstVisible.dataset.lvl;
     }
   }
+}
+function renderPublishedTiles(){
+  const w=$("#pubListBtns");
+  fetchPublishedLists().then(rows=>{
+    publishedLists = rows;
+    w.innerHTML="";
+    rows.forEach((l,i)=>{
+      const b=document.createElement("button");
+      b.className="lvl"+(state.level==="pub:"+i?" on":"");
+      b.dataset.lvl="pub:"+i;
+      b.innerHTML="📋 "+esc(l.name)+"<small>teacher's list</small>";
+      b.onclick=()=>{
+        $$("#levelBtns .lvl").forEach(x=>x.classList.remove("on"));
+        $$("#pubListBtns .lvl").forEach(x=>x.classList.remove("on"));
+        b.classList.add("on");
+        state.level="pub:"+i;
+        sClick();
+      };
+      w.appendChild(b);
+    });
+    $("#teacherListMsg").textContent = rows.length ? "" : "";
+  }).catch(()=>{ w.innerHTML=""; });
 }
 function showHome(){
   $("#screenHome").classList.remove("hide");
   $("#screenGame").classList.add("hide");
   $("#resultOverlay").classList.remove("show");
   renderLevelVisibility();
+  renderPublishedTiles();
   if(window.speechSynthesis) try{speechSynthesis.cancel()}catch(e){}
 }
 function showGame(){
   $("#screenHome").classList.add("hide");
   $("#screenGame").classList.remove("hide");
   window.scrollTo(0,0);
-}
-let publishedLists = [];
-async function loadTeacherListPicker(){
-  const sel=$("#teacherListSelect");
-  sel.innerHTML='<option value="">Loading…</option>';
-  $("#teacherListMsg").textContent="";
-  try{
-    publishedLists = await fetchPublishedLists();
-    if(!publishedLists.length){
-      sel.innerHTML='<option value="">No published lists yet</option>';
-      $("#teacherListMsg").textContent="Ask your teacher to publish a list first.";
-      return;
-    }
-    sel.innerHTML = publishedLists.map((l,i)=>'<option value="'+i+'">'+esc(l.name)+'</option>').join("");
-  }catch(e){
-    publishedLists=[];
-    sel.innerHTML='<option value="">Could not load lists</option>';
-    $("#teacherListMsg").textContent="Could not reach the server — try again.";
-  }
 }
 function startGame(){
   const name = $("#hName").value.trim();
@@ -929,11 +930,11 @@ function startGame(){
   }
   $("#hNameErr").textContent = "";
   state.player = name;
-  if(state.level === "teacher"){
-    const idx = parseInt($("#teacherListSelect").value,10);
+  if(typeof state.level === "string" && state.level.startsWith("pub:")){
+    const idx = parseInt(state.level.slice(4),10);
     const chosen = publishedLists[idx];
     if(!chosen){
-      $("#teacherListMsg").textContent = "Please choose a published list first.";
+      $("#teacherListMsg").textContent = "Please choose a list first.";
       sBad();
       return;
     }
@@ -1077,7 +1078,9 @@ function renderPlayerBar(){
   if(state.player) add("", "👦 "+esc(state.player));
   add("", "Round <b>"+state.round+"</b>");
   add("mode", state.mode==="money" ? "💰 Money game" : "🛒 Shopping game");
-  const lv={easy:"😀 Easy",medium:"🙂 Medium",hard:"😎 Hard",teacher:"👩‍🏫 Teacher's list"}[state.level];
+  const lv = (typeof state.level==="string" && state.level.startsWith("pub:"))
+    ? "👩‍🏫 "+(publishedLists[parseInt(state.level.slice(4),10)]?.name||"Teacher's list")
+    : {easy:"😀 Easy",medium:"🙂 Medium",hard:"😎 Hard"}[state.level];
   add("", lv);
   if(state.log.length){
     const stars=state.log.reduce((a,r)=>a+r.stars,0);
@@ -1261,7 +1264,7 @@ function showResults(){
     r.extra.forEach(m=>li(m.it.emoji+' <b>'+esc(m.it.plural)+'</b> were not on the list.'));
   }else li('Look at the list again and try once more.');
 
-  $("#rNew").classList.toggle("hide", state.level==="teacher");
+  $("#rNew").classList.toggle("hide", typeof state.level==="string" && state.level.startsWith("pub:"));
   $("#resultOverlay").classList.add("show");
 
   if(allRight){ sGood(); confetti(); logRound(s,true); }
@@ -1273,7 +1276,10 @@ function logRound(stars, perfect){
   const entry={
     round: state.round, player: state.player||"—",
     mode: state.mode==="money"?"Money":"Shopping",
-    level: state.level, score: r.right+"/"+r.total,
+    level: (typeof state.level==="string" && state.level.startsWith("pub:"))
+      ? (publishedLists[parseInt(state.level.slice(4),10)]?.name||"teacher list")
+      : state.level,
+    score: r.right+"/"+r.total,
     stars, perfect, tries: state.attempts,
     money: state.mode==="money" ? (state.moneyCorrect?"✔":"✘") : "—",
     time: new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})
@@ -1646,10 +1652,10 @@ $$("#modeTiles .tile").forEach(b=>b.onclick=()=>{
   state.mode=b.dataset.mode; sClick();
 });
 $$("#levelBtns .lvl").forEach(b=>b.onclick=()=>{
-  $$("#levelBtns .lvl").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+  $$("#levelBtns .lvl").forEach(x=>x.classList.remove("on"));
+  $$("#pubListBtns .lvl").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");
   state.level=b.dataset.lvl; sClick();
-  $("#teacherListPick").classList.toggle("hide", state.level!=="teacher");
-  if(state.level==="teacher") loadTeacherListPicker();
 });
 $("#btnStart").onclick        = startGame;
 $("#hName").addEventListener("keydown",e=>{ if(e.key==="Enter") startGame(); });
@@ -1683,7 +1689,7 @@ $("#rAgain").onclick = retry;
 $("#rNew").onclick   = ()=>{
   $("#resultOverlay").classList.remove("show");
   state.round++; state.attempts=0;
-  generateFromLevel(state.level==="teacher"?"medium":state.level);
+  generateFromLevel(state.level.startsWith("pub:")?"medium":state.level);
   softReset(); renderPlayerBar(); sGood();
   if(state.settings.hideList) startHideTimer();
 };
