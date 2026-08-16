@@ -589,12 +589,22 @@ html[data-theme="dark"] .pinbox p,html[data-theme="dark"] label.f,html[data-them
           <div class="mini">“Split a line” turns e.g. <b>27 apples</b> into <b>20 apples</b> + <b>7 apples</b> — good for addition practice.</div>
           <hr class="sep">
           <h3 class="sec">Saved lists</h3>
-          <div class="mini" style="margin-bottom:6px">Save a list here, then tap 🌐 to publish it so students can pick it under "Teacher's list" on any device.</div>
+          <div class="mini" style="margin-bottom:6px">Save a list here first. Tap 🌐 on one to publish it as its own tile, or bundle several into a lesson below.</div>
           <div class="row">
             <input type="text" id="saveName" placeholder="e.g. Monday P1" style="width:190px">
             <button class="btn" id="btnSaveList">💾 Save current list</button>
           </div>
           <div class="saved" id="savedWrap"></div>
+
+          <hr class="sep">
+          <h3 class="sec">Bundle saved lists into a lesson</h3>
+          <div class="mini" style="margin-bottom:6px">Tick the saved lists to include, name the lesson, then publish. Each time a student plays it, one of the ticked lists is picked for them.</div>
+          <div id="lessonPickWrap" class="row" style="margin-bottom:8px"></div>
+          <div class="row">
+            <input type="text" id="lessonName" placeholder="e.g. Monday lesson" style="width:190px">
+            <button class="btn o" id="btnPublishLesson">🌐 Publish lesson</button>
+            <span class="mini" id="lessonMsg"></span>
+          </div>
 
           <hr class="sep">
           <h3 class="sec">Published lists — pick what students can see</h3>
@@ -749,7 +759,7 @@ async function fetchCloudLog(){
   if(!res.ok) throw new Error("cloud log fetch failed");
   return res.json();
 }
-async function publishListToCloud(name, items){
+async function publishListToCloud(name, lists){
   const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_saved_lists?on_conflict=name", {
     method:"POST",
     headers:{
@@ -758,7 +768,7 @@ async function publishListToCloud(name, items){
       "Authorization":"Bearer "+SUPABASE_ANON_KEY,
       "Prefer":"resolution=merge-duplicates,return=minimal"
     },
-    body: JSON.stringify({ name, items, updated_at: new Date().toISOString() })
+    body: JSON.stringify({ name, items: lists[0]||[], lists, updated_at: new Date().toISOString() })
   });
   if(!res.ok) throw new Error("publish failed");
 }
@@ -770,14 +780,14 @@ async function unpublishListFromCloud(name){
   if(!res.ok) throw new Error("unpublish failed");
 }
 async function fetchPublishedLists(){
-  const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_saved_lists?select=name,items,updated_at&visible=eq.true&order=name.asc", {
+  const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_saved_lists?select=name,lists,updated_at&visible=eq.true&order=name.asc", {
     headers:{ "apikey":SUPABASE_ANON_KEY, "Authorization":"Bearer "+SUPABASE_ANON_KEY }
   });
   if(!res.ok) throw new Error("cloud list fetch failed");
   return res.json();
 }
 async function fetchAllCloudLists(){
-  const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_saved_lists?select=name,visible,updated_at&order=name.asc", {
+  const res = await fetch(SUPABASE_URL+"/rest/v1/supermarket_saved_lists?select=name,visible,updated_at,lists&order=name.asc", {
     headers:{ "apikey":SUPABASE_ANON_KEY, "Authorization":"Bearer "+SUPABASE_ANON_KEY }
   });
   if(!res.ok) throw new Error("cloud list fetch failed");
@@ -932,7 +942,8 @@ function renderPublishedTiles(){
       const b=document.createElement("button");
       b.className="lvl"+(state.level==="pub:"+i?" on":"");
       b.dataset.lvl="pub:"+i;
-      b.innerHTML="📋 "+esc(l.name)+"<small>teacher's list</small>";
+      const n=(l.lists||[]).length;
+      b.innerHTML="📋 "+esc(l.name)+"<small>"+(n>1?n+" lists · one picked for you":"teacher's list")+"</small>";
       b.onclick=()=>{
         $$("#levelBtns .lvl").forEach(x=>x.classList.remove("on"));
         $$("#pubListBtns .lvl").forEach(x=>x.classList.remove("on"));
@@ -976,7 +987,8 @@ function startGame(){
       sBad();
       return;
     }
-    state.list = chosen.items.map(o=>({...o}));
+    const sub = chosen.lists[Math.floor(Math.random()*chosen.lists.length)] || [];
+    state.list = sub.map(o=>({...o}));
   }else generateFromLevel(state.level);
   state.round++;
   state.attempts = 0;
@@ -1424,7 +1436,8 @@ function renderPublishedLists(){
     rows.forEach(r=>{
       const row=document.createElement("label");
       row.className="chk"; row.style.display="flex"; row.style.alignItems="center"; row.style.gap="8px"; row.style.margin="4px 0";
-      row.innerHTML='<input type="checkbox" '+(r.visible?"checked":"")+'> <b>'+esc(r.name)+'</b> <button type="button" title="Delete" style="margin-left:auto;background:none;color:#d64545;font-weight:800">✕</button>';
+      const n=(r.lists||[]).length;
+      row.innerHTML='<input type="checkbox" '+(r.visible?"checked":"")+'> <b>'+esc(r.name)+'</b> <span class="mini">('+n+' list'+(n===1?"":"s")+')</span> <button type="button" title="Delete" style="margin-left:auto;background:none;color:#d64545;font-weight:800">✕</button>';
       const cb=row.querySelector("input"), del=row.querySelector("button");
       cb.onchange=()=>{
         cb.disabled=true;
@@ -1598,14 +1611,42 @@ function renderSaved(){
     load.onclick=()=>{ state.list=state.saved[k].map(o=>({...o})); softReset(); renderListEdit(); renderBuildGrid(); };
     pub.onclick=()=>{
       pub.textContent="…";
-      publishListToCloud(k, state.saved[k]).then(()=>{
+      publishListToCloud(k, [state.saved[k]]).then(()=>{
         pub.textContent="✅"; setTimeout(()=>{ pub.textContent="🌐"; },1500);
         renderPublishedLists();
       }).catch(()=>{ pub.textContent="⚠️"; setTimeout(()=>{ pub.textContent="🌐"; },1500); });
     };
-    del.onclick=()=>{ delete state.saved[k]; renderSaved(); };
+    del.onclick=()=>{ delete state.saved[k]; renderSaved(); renderLessonPicker(); };
     w.appendChild(s);
   });
+  renderLessonPicker();
+}
+function renderLessonPicker(){
+  const w=$("#lessonPickWrap"); if(!w) return;
+  const keys=Object.keys(state.saved);
+  if(!keys.length){ w.innerHTML='<span class="mini">Save a list above first.</span>'; return; }
+  w.innerHTML="";
+  keys.forEach(k=>{
+    const lab=document.createElement("label");
+    lab.className="chk";
+    lab.innerHTML='<input type="checkbox" value="'+esc(k)+'"> '+esc(k);
+    w.appendChild(lab);
+  });
+}
+function publishLesson(){
+  const name=$("#lessonName").value.trim();
+  const msg=$("#lessonMsg");
+  if(!name){ msg.textContent="Give the lesson a name."; return; }
+  const chosen=$$("#lessonPickWrap input:checked").map(cb=>cb.value);
+  if(!chosen.length){ msg.textContent="Tick at least one saved list."; return; }
+  const lists=chosen.map(k=>state.saved[k]).filter(Boolean);
+  msg.textContent="Publishing…";
+  publishListToCloud(name, lists).then(()=>{
+    msg.textContent="✅ Published "+lists.length+" list"+(lists.length===1?"":"s")+" as \""+name+"\".";
+    $("#lessonName").value="";
+    $$("#lessonPickWrap input:checked").forEach(cb=>cb.checked=false);
+    renderPublishedLists();
+  }).catch(()=>{ msg.textContent="⚠️ Could not publish — try again."; });
 }
 
 /* print */
@@ -1757,6 +1798,7 @@ $("#btnSaveList").onclick=()=>{
   const n=$("#saveName").value.trim()||("List "+(Object.keys(state.saved).length+1));
   state.saved[n]=state.list.map(o=>({...o})); $("#saveName").value=""; renderSaved();
 };
+$("#btnPublishLesson").onclick=publishLesson;
 $("#btnGen").onclick=()=>{ generateRandomFromPanel(); sGood(); };
 $$("[data-preset]").forEach(b=>b.onclick=()=>{
   const [lo,hi,c]=b.dataset.preset.split(",");
