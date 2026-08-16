@@ -285,7 +285,7 @@ button{font-family:inherit;cursor:pointer;border:none}
 h3.sec{margin:0 0 8px;font-size:16px;color:#5b4a86}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
 label.f{font-size:13.5px;font-weight:800;color:#5c6c88;display:flex;flex-direction:column;gap:4px}
-input[type=text],input[type=number],input[type=password],select,textarea{font-family:inherit;font-size:15px;padding:8px 10px;border:2px solid var(--line);border-radius:10px;color:var(--ink);background:#fff}
+input[type=text],input[type=number],input[type=password],select,textarea{font-family:inherit;font-size:15px;padding:8px 10px;border:2px solid var(--line);border-radius:10px;color:var(--ink);background:var(--card)}
 input[type=number]{width:92px}
 textarea{width:100%;min-height:100px;font-size:12.5px;font-family:ui-monospace,Menlo,Consolas,monospace}
 .btn{padding:10px 15px;border-radius:12px;font-weight:800;font-size:14.5px;color:#fff;background:var(--blue);box-shadow:0 4px 0 rgba(0,0,0,.15)}
@@ -368,6 +368,34 @@ table.log th{background:#f6f9fd;color:#5c6c88;font-size:12.5px;text-transform:up
   .card .pic{font-size:44px}
   .list-item{font-size:19px;padding:11px 8px}
 }
+/* ===================== DARK MODE SURFACE FIXES ===================== */
+/* pale tinted backgrounds don't auto-adapt — override them so light-mode text stays readable */
+html[data-theme="dark"] .tile{background:#26314a}
+html[data-theme="dark"] .tile.on{background:#173321}
+html[data-theme="dark"] .ghost.purple{background:#2a2340;border-color:#4a3a75}
+html[data-theme="dark"] .pill.mode{background:#3a2f10;color:#f0d789;border-color:#5a4718}
+html[data-theme="dark"] .card.picked{background:#173321}
+html[data-theme="dark"] .qty{background:#26314a}
+html[data-theme="dark"] .list-item:hover{background:#2a2334}
+html[data-theme="dark"] .list-item.ok{background:#173323}
+html[data-theme="dark"] .list-item.bad{background:#3a2020}
+html[data-theme="dark"] .cart-box{background:#182035}
+html[data-theme="dark"] .chip.ok{background:#173323}
+html[data-theme="dark"] .chip.bad{background:#3a2020}
+html[data-theme="dark"] .moneyq{background:#332c10;border-color:#6b5a1c}
+html[data-theme="dark"] .moneyq .q,html[data-theme="dark"] .moneyq .cur{color:#f0d789}
+html[data-theme="dark"] .rbox{background:#182035;color:var(--ink-soft)}
+html[data-theme="dark"] .tab{background:#26314a;color:#a8b6cc}
+html[data-theme="dark"] .chk{background:#26314a;color:#c7d2e3}
+html[data-theme="dark"] .pickgrid,html[data-theme="dark"] .emojigrid{background:#182035}
+html[data-theme="dark"] .pick.on{background:#173321}
+html[data-theme="dark"] .emojigrid button.on{background:#2a2340}
+html[data-theme="dark"] .saved .s{background:#202a42;border-color:#33456b;color:#dbe6f8}
+html[data-theme="dark"] table.log th{background:#26314a;color:#c7d2e3}
+html[data-theme="dark"] .stat{background:#26314a}
+html[data-theme="dark"] .note{background:#26314a !important;border-color:#3a4a68 !important}
+html[data-theme="dark"] .pinbox p,html[data-theme="dark"] label.f,html[data-theme="dark"] .ghost{color:var(--ink-soft)}
+
 /* ===================== PRINT ===================== */
 .printonly{display:none}
 @media print{
