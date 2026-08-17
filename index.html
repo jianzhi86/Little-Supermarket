@@ -847,7 +847,7 @@ const state = {
   items: DEFAULT_ITEMS.map(o=>({...o})),
   list: [], picks: {}, checked:false, result:null,
   saved:{}, log:[], round:0, attempts:0,
-  player:"", mode:"shop", level:null, lessonSubs:[], lessonIndex:0,
+  player:"", mode:"shop", level:null, lessonSubs:[], lessonIndex:0, submitting:false,
   levels:{ easy:{min:1,max:5,count:4}, medium:{min:1,max:10,count:6}, hard:{min:5,max:20,count:8} },
   moneyAnswer:null, moneyCorrect:null,
   settings:{ pin:"0110", sound:true, speak:true, check:true, showMistakes:true,
@@ -1188,6 +1188,7 @@ function check(){
 function onAddToCart(){
   if(!state.list.length){ sBad(); return; }
   if(state.checked){ retry(); return; }
+  if(state.submitting) return;
 
   if(state.mode==="money"){
     const v=$("#moneyIn").value.trim();
@@ -1213,10 +1214,12 @@ function onAddToCart(){
     return;
   }
 
+  state.submitting = true;
   state.attempts++;
   flyToCart();
   setTimeout(()=>{
     state.checked=true;
+    state.submitting = false;
     state.result=state.settings.check ? check() : null;
     if(state.mode!=="money"){ state.moneyAnswer=null; state.moneyCorrect=null; }
     $("#cartBox").classList.add("flash");
@@ -1226,14 +1229,14 @@ function onAddToCart(){
   }, 640);
 }
 function retry(){
-  state.checked=false; state.result=null;
+  state.checked=false; state.result=null; state.submitting=false;
   $("#resultOverlay").classList.remove("show");
   renderList(); renderCart(); sClick();
 }
 function softReset(){
   state.picks={}; state.checked=false; state.result=null;
   state.moneyAnswer=null; state.moneyCorrect=null;
-  state.itemsUnlocked=false;
+  state.itemsUnlocked=false; state.submitting=false;
   const mi=$("#moneyIn"); if(mi) mi.value="";
   const mf=$("#moneyFb"); if(mf){ mf.textContent=""; mf.className="fb"; }
   const ii=$("#itemsIn"); if(ii) ii.value="";
